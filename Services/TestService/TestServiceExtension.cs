@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TestService.Features;
 
-namespace BundleService
+namespace TestService
 {
     public static class TestServiceExtension
     {
