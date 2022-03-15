@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{03
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "helpers", "helpers\helpers.csproj", "{3E6C34D1-C908-44C6-8F03-12915E768049}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestService", "TestService\TestService.csproj", "{910FA8A2-0193-49EF-ADD2-EDAD00C23300}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestService", "Services\TestService\TestService.csproj", "{910FA8A2-0193-49EF-ADD2-EDAD00C23300}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
