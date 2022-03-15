@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+        <ServerGarbageCollection>false</ServerGarbageCollection>
+        <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\helpers\helpers.csproj" />
+    <ProjectReference Include="..\..\models\models.csproj" />
+    <ProjectReference Include="..\..\Services\ProvisionService\BundleService.csproj" />
+  </ItemGroup>
+
+
+</Project>
