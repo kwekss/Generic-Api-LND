@@ -9,7 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\helpers\helpers.csproj" />
     <ProjectReference Include="..\..\models\models.csproj" />
-    <ProjectReference Include="..\..\Services\ProvisionService\BundleService.csproj" />
+    <ProjectReference Include="..\..\Services\TestService\TestService.csproj" />
   </ItemGroup>
 
 

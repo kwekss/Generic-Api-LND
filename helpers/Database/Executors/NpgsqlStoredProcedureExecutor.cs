@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace helpers.Database.Executors
@@ -88,7 +87,7 @@ namespace helpers.Database.Executors
                     /*.ContinueWith(async t => await Notification(_connection, notificationTag, handler), TaskContinuationOptions.OnlyOnFaulted);
                 await Task.Delay(Timeout.Infinite);*/
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 CloseConnectionOnly(connection);
                 throw;

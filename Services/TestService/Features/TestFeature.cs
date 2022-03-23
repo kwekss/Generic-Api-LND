@@ -1,25 +1,23 @@
 ﻿using helpers;
-using Microsoft.AspNetCore.Http;
+using helpers.Atttibutes;
 using models;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
+using TestService.Models;
 
 namespace TestService.Features
 {
+    [Feature(Name = "TestFeature")]
     public class TestFeature : BaseServiceFeature
-    { 
-        public override string FeatureName => "ProvisionBundle";
-        public override string Service => "Bundles";
-
-        public TestFeature(IHttpContextAccessor httpContext) :base(httpContext)
+    {
+        public TestFeature() : base()
         {
 
         }
-        public override async Task<ApiResponse> ExecuteFeature()
+
+        [Entry(Method = "POST/GET", Route = "id/{id}")]
+        public ApiResponse MyEntryMethod([FromJsonBody] TestModel input,[FromQuery] TestModel input2, int id)
         {
-            return new ApiResponse { Success = true, ResponseMessage = $"I am { FeatureName } from {Service}."};
+            return new ApiResponse { Success = true, ResponseMessage = $"I am { FeatureName } from {Service} and from body {input.Prop} and id: {id}" };
         }
+        
     }
 }
