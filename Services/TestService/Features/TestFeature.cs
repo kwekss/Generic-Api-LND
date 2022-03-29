@@ -14,10 +14,15 @@ namespace TestService.Features
         }
 
         [Entry(Method = "POST/GET", Route = "id/{id}")]
-        public ApiResponse MyEntryMethod([FromJsonBody] TestModel input,[FromQuery] TestModel input2, int id)
+        public ApiResponse MyEntryMethod(int id)
         {
-            return new ApiResponse { Success = true, ResponseMessage = $"I am { FeatureName } from {Service} and from body {input.Prop} and id: {id}" };
+            return new ApiResponse
+            {
+                Success = true,
+                ResponseMessage = $"I am { FeatureName } from {Service} and id: {id}",
+                Data = new DataModel { Prop = "Data" }
+            };
         }
-        
+
     }
 }

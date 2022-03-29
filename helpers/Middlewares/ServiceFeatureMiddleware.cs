@@ -182,7 +182,7 @@ namespace helpers.Middlewares
         {
             object featureResponse = new { };
             if (state.IsAwaitable && state.ReturnData)
-                featureResponse = await (dynamic)matchingFeature.Invoke(service, PopulateParameters(matchingFeature.GetParameters().Where(_ => _.GetCustomAttributes(true).Any(_ => _.GetType() == typeof(IParameterAttribute))), context, routeRegex));
+                featureResponse = await (dynamic)matchingFeature.Invoke(service, PopulateParameters(matchingFeature.GetParameters(), context, routeRegex));
 
             if (state.IsAwaitable && !state.ReturnData)
                 await (dynamic)matchingFeature.Invoke(service, null);
@@ -284,28 +284,10 @@ namespace helpers.Middlewares
         {
             var isAwaitable = methodInfo.ReturnType.GetMethod(nameof(Task.GetAwaiter)) != null;
 
-            if (isAwaitable)
-            {
-                if (methodInfo.ReturnType.IsGenericType)
-                {
-                    return (true, true);
-                }
-                else
-                {
-                    return (true, false);
-                }
-            }
+            if (isAwaitable) 
+                return (true, methodInfo.ReturnType.IsGenericType);
             else
-            {
-                if (methodInfo.ReturnType == typeof(void))
-                {
-                    return (false, false);
-                }
-                else
-                {
-                    return (false, true);
-                }
-            }
+                return (false, methodInfo.ReturnType != typeof(void));
         }
     }
 }
