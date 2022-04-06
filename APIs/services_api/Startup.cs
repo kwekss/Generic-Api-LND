@@ -40,9 +40,11 @@ namespace services_api
                 .AddSingleton<ISmsNotification, SmsNotification>()
                 .AddSingleton<IDBHelper, DBHelper>()
                 .AddTestService();
-             
+
             services
-                .AddSingleton(x => services) .AddControllers();
+                .AddCors()
+                .AddSingleton(x => services) 
+                .AddControllers();
         }
 
        
@@ -54,9 +56,16 @@ namespace services_api
             }
 
             app.UseRouting();
-            app.UseMiddleware<ServiceFeatureMiddleware>();
+            app.UseCors(o =>
+            {
+                var allowedOrigins = _config.GetSection("AllowedOrigins").Get<string[]>();
+                if (allowedOrigins.Length > 0)
+                    for (var i = 0; i < allowedOrigins.Length; i++)
+                        o.WithOrigins(allowedOrigins[i]);
+                o.AllowAnyHeader();
+            });
 
-            app.UseAuthorization();
+            app.UseMiddleware<ServiceFeatureMiddleware>(); 
 
             app.UseEndpoints(endpoints =>
             {

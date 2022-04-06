@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Reflection;
@@ -19,8 +20,7 @@ namespace helpers.Atttibutes
         {
             var sr = new StreamReader(httpContext.Request.Body);
             string data = await sr.ReadToEndAsync();
-            //if(type.Name.ToLower() == "object") return JsonSerializer.Deserialize<dynamic>(data);
-            return JsonSerializer.Deserialize(data, type);
+            return JsonConvert.DeserializeObject(data, type);
         }
     }
 }

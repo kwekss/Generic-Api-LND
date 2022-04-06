@@ -29,7 +29,7 @@ namespace helpers.Atttibutes
                 return (val as Array).GetValue(0);
             }));
 
-            return JsonSerializer.Deserialize(serialized, type);
+            return Newtonsoft.Json.JsonConvert.DeserializeObject(serialized, type);
         }
     }
 }

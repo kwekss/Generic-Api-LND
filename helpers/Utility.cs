@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using helpers.Exceptions;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,8 +15,7 @@ namespace helpers
     {
         public static string FormatNumber10Digits(string phoneNumber, bool returnIfInvalid = false)
         {
-            phoneNumber = phoneNumber.Trim();
-            //check for valid phone number
+            phoneNumber = phoneNumber.Trim(); 
             if (phoneNumber == null ||
                 phoneNumber.Trim() == "" ||
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
@@ -24,7 +26,7 @@ namespace helpers
                 }
                 else
                 {
-                    throw new InvalidOperationException("Invalid Number");
+                    throw new WarningException($"Invalid Number: {phoneNumber}");
                 }
 
             } 
@@ -55,20 +57,19 @@ namespace helpers
             }
             else
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
 
         }
 
         public static string FormatNumber9Digits(string phoneNumber)
         {
-            phoneNumber = phoneNumber.Trim();
-            //check for valid phone number
+            phoneNumber = phoneNumber.Trim(); 
             if (phoneNumber == null ||
                 phoneNumber.Trim() == "" ||
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
 
             //init variable to hold the formatted phone number
@@ -91,27 +92,25 @@ namespace helpers
 
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
             if (phoneNumber.Length != 9)
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
             return phoneNumber;
         }
 
         public static string FormatNumber12Digits(string phoneNumber)
         {
-            phoneNumber = phoneNumber.Trim();
-            //check for valid phone number
+            phoneNumber = phoneNumber.Trim(); 
             if (phoneNumber == null ||
                 phoneNumber.Trim() == "" ||
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
-
-            //init variable to hold the formatted phone number
+             
 
             if (phoneNumber.StartsWith("+233") && phoneNumber.Length == 13)
             {
@@ -131,11 +130,11 @@ namespace helpers
             }
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
             if (phoneNumber.Length != 12)
             {
-                throw new InvalidOperationException("Invalid Number");
+                throw new WarningException($"Invalid Number: {phoneNumber}");
             }
             return phoneNumber;
         }
@@ -185,5 +184,12 @@ namespace helpers
 
         public static string Stringify(this object obj) => JsonConvert.SerializeObject(obj);
         public static T ParseObject<T>(this string obj) => JsonConvert.DeserializeObject<T>(obj);
+
+        public static bool IsEmpty<T>(List<T> list)
+        {
+            if (list == null)return true;
+
+            return !list.Any();
+        }
     }
 }

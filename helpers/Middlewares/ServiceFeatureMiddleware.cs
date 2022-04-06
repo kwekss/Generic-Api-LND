@@ -81,17 +81,14 @@ namespace helpers.Middlewares
                     return;
                 }
 
-                //Todo:
                 var entry = (EntryAttribute)featureEntry.GetCustomAttribute(typeof(EntryAttribute));
 
-                //get feature route if set and match it to endpoint route
-                //Convert route to regex
                 RouteRegex regexRoute = null;
                 if (!string.IsNullOrWhiteSpace(entry.Route))
                 {
                     regexRoute = ConvertRouteToRegex(entry.Route);
                     var regex = Regex.Matches(endpoint.Route, regexRoute.Regex);
-                    if (regexRoute == null || regex.Count == 0)
+                    if (regex.Count == 0)
                     {
                         await Respond(context, "Route not found on feature endpoint");
                         return;
@@ -109,7 +106,7 @@ namespace helpers.Middlewares
                 var state = DeterminingAwaitable(featureEntry);
                 context.Response.Headers["content-type"] = "application/json";
 
-                InvokeEntryAttributes(service, featureEntry, context, endpoint);
+                InvokeEntryAttributes(service, context, endpoint);
 
                 object featureResponse = await InvokeFeatureEntry(context, service, featureEntry, state, regexRoute);
 
@@ -128,6 +125,22 @@ namespace helpers.Middlewares
                 await Respond(context, e.Message);
                 return;
             }
+            catch (CustomException e)
+            {
+                _logger.LogInfo(logs);
+                _logger.LogError($"[{requestId}]{e}");
+
+                await Respond(context, e.Message);
+                return;
+            }
+            catch (WarningException e)
+            {
+                _logger.LogInfo(logs);
+                _logger.LogWarning($"[{requestId}]{e}");
+
+                await Respond(context, e.Message);
+                return;
+            }
             catch (Exception e)
             {
                 _logger.LogInfo(logs);
@@ -136,9 +149,6 @@ namespace helpers.Middlewares
                 await Respond(context, "A system error occured. Please try again");
                 return;
             }
-
-
-            await _next(context);
         }
 
         private RouteRegex ConvertRouteToRegex(string route)
@@ -172,7 +182,7 @@ namespace helpers.Middlewares
             return routeRegex;
         }
 
-        private void InvokeEntryAttributes(BaseServiceFeature service, MethodInfo featureEntry, HttpContext context, Endpoint endpoint)
+        private void InvokeEntryAttributes(BaseServiceFeature service, HttpContext context, Endpoint endpoint)
         {
 
             SetFeatureDefaultValues(context, endpoint, service);
@@ -271,13 +281,6 @@ namespace helpers.Middlewares
             }
 
             return p.ToArray();
-        }
-
-        public async Task<dynamic> GetPayloadFromBody(HttpContext httpContext, Type type)
-        {
-            var sr = new StreamReader(httpContext.Request.Body);
-            string data = await sr.ReadToEndAsync();
-            return JsonSerializer.Deserialize(data, type);
         }
 
         private (bool IsAwaitable, bool ReturnData) DeterminingAwaitable(MethodInfo methodInfo)
