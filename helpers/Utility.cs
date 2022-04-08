@@ -182,7 +182,7 @@ namespace helpers
             return cipherText;
         }
 
-        public static string Stringify(this object obj) => JsonConvert.SerializeObject(obj);
+        public static string Stringify(this object obj, JsonSerializerSettings settings = null) => JsonConvert.SerializeObject(obj,settings);
         public static T ParseObject<T>(this string obj) => JsonConvert.DeserializeObject<T>(obj);
 
         public static bool IsEmpty<T>(List<T> list)
@@ -202,7 +202,7 @@ namespace helpers
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
             {
                 return false;
-            }
+            } 
 
             //init variable to hold the formatted phone number
 

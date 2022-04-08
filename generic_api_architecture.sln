@@ -19,12 +19,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "unit_tests", "unit_tests\un
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthService", "Services\AuthService\AuthService.csproj", "{5CBCE9DF-0BAA-4627-A422-7A0F99218EBE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VendorService", "VendorService\VendorService.csproj", "{D9544292-D052-4A31-8D72-30D0228E85F4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MenuService", "MenuService\MenuService.csproj", "{2D397E22-C3AA-41CC-9F9E-19354DBFBA66}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrderService", "OrderService\OrderService.csproj", "{F5B57B00-7A65-4BFB-9D8C-70043898D7B9}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

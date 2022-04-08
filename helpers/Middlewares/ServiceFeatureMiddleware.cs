@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -110,11 +112,15 @@ namespace helpers.Middlewares
 
                 object featureResponse = await InvokeFeatureEntry(context, service, featureEntry, state, regexRoute);
 
+                var serializerSettings = new JsonSerializerSettings
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                };
 
-                logs.AppendLine($"[{requestId}] Response: {featureResponse.Stringify()}");
+                logs.AppendLine($"[{requestId}] Response: {featureResponse.Stringify(serializerSettings)}");
                 if (_is_logging_enabled) _logger.LogInfo(logs);
 
-                await context.Response.WriteAsync(featureResponse.Stringify());
+                await context.Response.WriteAsync(featureResponse.Stringify(serializerSettings));
                 return;
             }
             catch (ParamerException e)
