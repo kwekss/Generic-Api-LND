@@ -5,12 +5,15 @@ using helpers.Database.Models;
 using helpers.Engine;
 using helpers.Middlewares;
 using helpers.Notifications;
+using MenuService;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OrderService;
 using TestService;
+using VendorService;
 
 namespace services_api
 {
@@ -39,6 +42,9 @@ namespace services_api
                 .AddSingleton<IStoredProcedureExecutor, NpgsqlStoredProcedureExecutor>()
                 .AddSingleton<ISmsNotification, SmsNotification>()
                 .AddSingleton<IDBHelper, DBHelper>()
+                .AddVendorService()
+                .AddMenuService()
+                .AddOrderService()
                 .AddTestService();
 
             services
