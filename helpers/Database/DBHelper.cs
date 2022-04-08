@@ -36,7 +36,7 @@ namespace helpers.Database
             var t = default(T);
             await _storedProcedureExecutor.ExecuteStoredProcedure(_connections.Default, $"\"{procedureName}\"", parameters, (reader) =>
             {
-                if (reader.Read()) t = reader.Get<T>($"\"{procedureName}\"");
+                if (reader.Read()) t = reader.Get<T>($"{procedureName}");
             });
 
             return t;
@@ -46,7 +46,7 @@ namespace helpers.Database
             var t = default(T);
             await _storedProcedureExecutor.ExecuteStoredProcedure(connection, $"\"{procedureName}\"", parameters, (reader) =>
             {
-                if (reader.Read()) t = reader.Get<T>($"\"{procedureName}\"");
+                if (reader.Read()) t = reader.Get<T>($"{procedureName}");
             });
 
             return t;
