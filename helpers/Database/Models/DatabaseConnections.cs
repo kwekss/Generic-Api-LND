@@ -4,6 +4,7 @@
     {
         public Connection Default { get; set; }
         public Connection SMS { get; set; }
+        public Connection CaaS { get; set; }
         public MongoConnection Mongo { get; set; }
     }
 

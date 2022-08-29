@@ -1,24 +1,28 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using helpers.Database.Models;
 using MongoDB.Driver;
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace helpers.Database
 {
-    public class MongoDBHelper
+    public class MongoDBHelper : IMongoDBHelper
     {
-        private readonly string _collectionName;
         private readonly MongoClient _client;
         private readonly IMongoDatabase _db;
-        public MongoDBHelper(IConfiguration config)
+        public MongoDBHelper(DatabaseConnections connections)
         {
-            string dataBaseName = config["MongoDatabase"];
-            string mongoServer = config["MongoServer"];
-            _collectionName = config["MongoCollection"];
+            _client = new MongoClient(connections.Mongo.Server);
+            _db = _client.GetDatabase(connections.Mongo.Database);
+        }
 
-            _client = new MongoClient(mongoServer);
-            _db = _client.GetDatabase(dataBaseName);
+        public IMongoCollection<T> GetCollection<T>(string collectionName, string sessionKey)
+        {
+            var number = BitConverter.ToInt32(Encoding.ASCII.GetBytes(sessionKey), 0);
+            return _db.GetCollection<T>($"{collectionName}_{number % 20}");
+        }
+        public IMongoCollection<T> GetCollection<T>(string collectionName)
+        {
+            return _db.GetCollection<T>(collectionName);
         }
     }
 }

@@ -6,10 +6,8 @@ using helpers.Database;
 using helpers.Database.Models;
 using models;
 using NpgsqlTypes;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace AuthService.Features
@@ -32,7 +30,7 @@ namespace AuthService.Features
             var response = IsInputValid(input);
             if (!string.IsNullOrWhiteSpace(response)) return new ApiResponse { Success = false, ResponseMessage = response };
             object user = await GetUserByCredentials(input.Username, input.Password);
-            if (user == null) 
+            if (user == null)
                 return new ApiResponse { Success = false, ResponseMessage = "Invalid username or password. Please check and try again" };
 
             var jwt = _jwtProvider.CreateJwtInfo(input.Username, "");

@@ -10,7 +10,7 @@ namespace TestService
         {
             services
                 .AddSingleton<BaseServiceFeature, TestFeature>();
-             
+
             return services;
         }
     }

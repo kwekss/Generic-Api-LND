@@ -1,5 +1,4 @@
 ﻿using helpers.Exceptions;
-using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -15,7 +14,7 @@ namespace helpers
     {
         public static string FormatNumber10Digits(string phoneNumber, bool returnIfInvalid = false)
         {
-            phoneNumber = phoneNumber.Trim(); 
+            phoneNumber = phoneNumber.Trim();
             if (phoneNumber == null ||
                 phoneNumber.Trim() == "" ||
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
@@ -29,7 +28,7 @@ namespace helpers
                     throw new WarningException($"Invalid Number: {phoneNumber}");
                 }
 
-            } 
+            }
 
             if (phoneNumber.Length == 9)
             {
@@ -64,7 +63,7 @@ namespace helpers
 
         public static string FormatNumber9Digits(string phoneNumber)
         {
-            phoneNumber = phoneNumber.Trim(); 
+            phoneNumber = phoneNumber.Trim();
             if (phoneNumber == null ||
                 phoneNumber.Trim() == "" ||
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
@@ -103,14 +102,14 @@ namespace helpers
 
         public static string FormatNumber12Digits(string phoneNumber)
         {
-            phoneNumber = phoneNumber.Trim(); 
+            phoneNumber = phoneNumber.Trim();
             if (phoneNumber == null ||
                 phoneNumber.Trim() == "" ||
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
             {
                 throw new WarningException($"Invalid Number: {phoneNumber}");
             }
-             
+
 
             if (phoneNumber.StartsWith("+233") && phoneNumber.Length == 13)
             {
@@ -182,12 +181,12 @@ namespace helpers
             return cipherText;
         }
 
-        public static string Stringify(this object obj, JsonSerializerSettings settings = null) => JsonConvert.SerializeObject(obj,settings);
+        public static string Stringify(this object obj, JsonSerializerSettings settings = null) => JsonConvert.SerializeObject(obj, settings);
         public static T ParseObject<T>(this string obj) => JsonConvert.DeserializeObject<T>(obj);
 
         public static bool IsEmpty<T>(List<T> list)
         {
-            if (list == null)return true;
+            if (list == null) return true;
 
             return !list.Any();
         }
@@ -202,7 +201,7 @@ namespace helpers
                 !Regex.IsMatch(phoneNumber, @"^\d+$"))
             {
                 return false;
-            } 
+            }
 
             //init variable to hold the formatted phone number
 
@@ -233,6 +232,36 @@ namespace helpers
             return true;
         }
 
+        public static string GenerateRandom(int length)
+        {
+            Random generator = new Random();
+            return generator.Next(0, 1000000).ToString($"D{length}");
+        }
 
+        public static int CheckPasswordStrength(string password)
+        {
+            //0 = blank, 1 = very weak, 2 weak, 3 medium, 4 strong >=5 Very strong
+            int score = 0;
+
+            if (password.Length < 1)
+                return 0;
+            if (password.Length < 4)
+                return 1;
+
+            if (password.Length >= 8)
+                score++;
+            if (password.Distinct().Count() >= 8)
+                score++;
+            if (password.Distinct().Count() >= 12)
+                score++;
+            if (password.Any(c => char.IsDigit(c)))
+                score++;
+            if (password.Any(c => char.IsUpper(c)) && password.Any(c => char.IsLower(c)))
+                score++;
+            if (password.IndexOfAny("!@#$%^&*?_~-£().,".ToCharArray()) >= 0)
+                score++;
+
+            return score;
+        }
     }
 }

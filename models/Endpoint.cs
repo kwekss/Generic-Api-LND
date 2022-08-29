@@ -14,12 +14,13 @@ namespace models
                 path.RemoveRange(0, 2);
                 Route = string.Join('/', path);
             }
-                
+
         }
         public string Service { get; }
         public string Feature { get; }
         public string Route { get; }
         public string RequiredFullname { get => $"{Service}Service.Features"; }
         private List<string> _path { get; }
+        public byte[] RequestBody { get; set; }
     }
 }

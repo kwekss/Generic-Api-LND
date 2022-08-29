@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-//using Newtonsoft.Json;
+﻿using helpers.Notifications;
+using Microsoft.AspNetCore.Http;
+using models;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -13,7 +14,7 @@ namespace helpers.Atttibutes
     public class FromQueryAttribute : Attribute, IParameterAttribute
     {
 
-        public void InitAttribute(ParameterInfo instance, HttpContext context, object[] args)
+        public void InitAttribute(ParameterInfo instance, HttpContext context, Endpoint endpoint, params object[] args)
         {
             args[instance.Position] = GetPayloadFromQuery(context, instance.ParameterType).Result;
         }
@@ -28,7 +29,7 @@ namespace helpers.Atttibutes
                 if (val.Length > 1) return val;
                 return (val as Array).GetValue(0);
             }));
-
+            Event.Dispatch("log", $"Request Query Parameters: {serialized}");
             return Newtonsoft.Json.JsonConvert.DeserializeObject(serialized, type);
         }
     }

@@ -29,16 +29,15 @@ namespace helpers.Database.Extensions
         {
             var r = reader.Serialize();
             string json = JsonConvert.SerializeObject(r, Formatting.Indented);
-            var parsers = new string[] { "\\", ": \"{", "}\"", "\"[{", "}]\"" };
-            var replacers = new string[] { "", ": {", "}", "[{", "}]" };
+            var parsers = new string[] { "\\", ": \"{", "}\"", "\"[{", "}]\"", "\"[", "]\"" };
+            var replacers = new string[] { "", ": {", "}", "[{", "}]", "[", "]" };
 
-            //while (parsers.Any(json.Contains) json.IndexOfAny(parsers,) || json.Contains(": \"{") || json.Contains("}\"") || json.Contains("\"[{") || json.Contains("}]\""))
             while (parsers.Any(json.Contains))
             {
                 for (int i = 0; i < parsers.Length; i++)
                 {
                     json = json.Replace(parsers[i], replacers[i]);
-                }                 
+                }
             }
 
 

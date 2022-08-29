@@ -4,13 +4,14 @@ using helpers.Database.Executors;
 using helpers.Database.Models;
 using helpers.Engine;
 using helpers.Middlewares;
-using helpers.Notifications; 
+using helpers.Notifications;
+using helpers.Session;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting; 
-using TestService; 
+using Microsoft.Extensions.Hosting;
+using TestService;
 
 namespace services_api
 {
@@ -22,7 +23,7 @@ namespace services_api
         {
             _config = configuration;
         }
-         
+
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -38,16 +39,19 @@ namespace services_api
                 .AddSingleton<IFeatureContext, FeatureContext>()
                 .AddSingleton<IStoredProcedureExecutor, NpgsqlStoredProcedureExecutor>()
                 .AddSingleton<ISmsNotification, SmsNotification>()
-                .AddSingleton<IDBHelper, DBHelper>() 
-                .AddTestService();
+                .AddSingleton<IDBHelper, DBHelper>()
+                .AddSingleton<IMongoDBHelper, MongoDBHelper>()
+                .AddSingleton<ISessionManager, SessionManager>()
+                .AddTestService()
+                ;
 
             services
                 .AddCors()
-                .AddSingleton(x => services) 
+                .AddSingleton(x => services)
                 .AddControllers();
         }
 
-       
+
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -65,7 +69,7 @@ namespace services_api
                 o.AllowAnyHeader();
             });
 
-            app.UseMiddleware<ServiceFeatureMiddleware>(); 
+            app.UseMiddleware<ServiceFeatureMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {

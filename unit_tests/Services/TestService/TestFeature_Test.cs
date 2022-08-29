@@ -13,7 +13,7 @@ namespace unit_tests.Services.TestService
         [SetUp]
         public void Setup()
         {
-            feature = new TestFeature(); 
+            feature = new TestFeature();
             typeof(BaseServiceFeature).GetProperty("Service").SetValue(feature, "Test", null);
             typeof(BaseServiceFeature).GetProperty("FeatureName").SetValue(feature, nameof(TestFeature), null);
         }
@@ -21,13 +21,11 @@ namespace unit_tests.Services.TestService
         [Test]
         public async Task Will_Return_Exact_Response_From_Feature()
         {
-            var input = new TestModel { Prop = "1234" };
-            var input2 = new TestModel { Prop = "abcd" };
-            var id = 1234;
-            var entryResponse = feature.MyEntryMethod(input, input2, id);
+            var input = new TestModel { Prop = "1234" }; 
+            var entryResponse = feature.Entry(input);
             Assert.IsNotNull(entryResponse);
             Assert.IsTrue(entryResponse.Success);
-            Assert.AreEqual(entryResponse.ResponseMessage, $"I am TestFeature from Test and from body {input.Prop} and id: {id}");
+            Assert.AreEqual(entryResponse.ResponseMessage, $"I am {feature.FeatureName} from {feature.Service} and id: {input.Prop}");
         }
     }
 }

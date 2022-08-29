@@ -82,10 +82,10 @@ namespace helpers.Database.Executors
                     command.CommandType = CommandType.Text;
                     command.ExecuteNonQuery();
                 }
-               
+
                 await WaitForMessage(connection);
-                    /*.ContinueWith(async t => await Notification(_connection, notificationTag, handler), TaskContinuationOptions.OnlyOnFaulted);
-                await Task.Delay(Timeout.Infinite);*/
+                /*.ContinueWith(async t => await Notification(_connection, notificationTag, handler), TaskContinuationOptions.OnlyOnFaulted);
+            await Task.Delay(Timeout.Infinite);*/
             }
             catch (Exception)
             {

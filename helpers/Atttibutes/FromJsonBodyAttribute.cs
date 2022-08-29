@@ -1,26 +1,26 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using helpers.Notifications;
+using Microsoft.AspNetCore.Http;
+using models;
 using Newtonsoft.Json;
 using System;
-using System.IO;
 using System.Reflection;
-using System.Text.Json;
-using System.Threading.Tasks;
+using System.Text;
 
 namespace helpers.Atttibutes
 {
     [AttributeUsage(AttributeTargets.Parameter)]
-    public class FromJsonBodyAttribute : Attribute,IParameterAttribute
+    public class FromJsonBodyAttribute : Attribute, IParameterAttribute
     {
-        public void InitAttribute(ParameterInfo instance,  HttpContext context,  params object[] args)
+        public void InitAttribute(ParameterInfo instance, HttpContext context, Endpoint endpoint, params object[] args)
         {
-            args[instance.Position] = GetPayloadFromBody(context, instance.ParameterType).Result;
+            args[instance.Position] = GetPayloadFromBody(endpoint, instance.ParameterType);
         }
 
-        public async Task<dynamic> GetPayloadFromBody(HttpContext httpContext, Type type)
+        public dynamic GetPayloadFromBody(Endpoint endpoint, Type type)
         {
-            var sr = new StreamReader(httpContext.Request.Body);
-            string data = await sr.ReadToEndAsync();
-            return JsonConvert.DeserializeObject(data, type);
+            var payloadString = Encoding.UTF8.GetString(endpoint.RequestBody);
+            Event.Dispatch("log", $"Request Payload: {payloadString}");
+            return JsonConvert.DeserializeObject(payloadString, type);
         }
     }
 }

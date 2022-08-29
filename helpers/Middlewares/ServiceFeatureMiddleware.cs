@@ -10,11 +10,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -28,6 +26,8 @@ namespace helpers.Middlewares
         private readonly IConfiguration _config;
         private readonly RequestDelegate _next;
         private readonly bool _is_logging_enabled;
+        private readonly string _url_prefix;
+        private readonly JsonSerializerSettings _serializerSettings;
 
         public ServiceFeatureMiddleware(IServiceProvider serviceProvider, IFileLogger fileLogger, IConfiguration config, RequestDelegate next)
         {
@@ -36,6 +36,12 @@ namespace helpers.Middlewares
             _config = config;
             _next = next;
             _is_logging_enabled = Convert.ToBoolean(config["ENABLE_LOGGING"] ?? "false");
+            _url_prefix = config["URL_PREFIX"] ?? "";
+
+            _serializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            };
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -48,8 +54,18 @@ namespace helpers.Middlewares
                 StartLogger(logs, requestId);
 
                 Event.Dispatch("log", $"Request start @ {DateTime.Now}");
+                var urlPath = context.Request.Path.Value.ToLower();
+                if (!string.IsNullOrWhiteSpace(_url_prefix))
+                {
+                    if (!urlPath.StartsWith(_url_prefix.ToLower()))
+                    {
+                        await Respond(context, "Invalid URL provided.");
+                        return;
+                    }
+                    urlPath = urlPath.Replace(_url_prefix.ToLower(), "");
+                }
 
-                var path = context.Request.Path.Value.Split('/').Where(_ => !string.IsNullOrWhiteSpace(_)).ToList();
+                var path = urlPath.Split('/').Where(_ => !string.IsNullOrWhiteSpace(_)).ToList();
                 if (path.Count < 2)
                 {
                     await Respond(context, "Service or feature not found");
@@ -57,6 +73,15 @@ namespace helpers.Middlewares
                 }
 
                 var endpoint = new Endpoint(path);
+                var buffer = new byte[Convert.ToInt32(context.Request.ContentLength)];
+                await context.Request.Body.ReadAsync(buffer, 0, buffer.Length);
+                endpoint.RequestBody = buffer;
+
+                if (endpoint.Service.ToLower().StartsWith("assets"))
+                {
+                    await _next.Invoke(context);
+                    return;
+                }
 
                 var service = _serviceProvider.GetServices<BaseServiceFeature>()
                     .FirstOrDefault(_ => _.GetType().GetCustomAttributes().Any(_ => _.GetType() == typeof(FeatureAttribute)
@@ -66,7 +91,7 @@ namespace helpers.Middlewares
 
                 if (service == null)
                 {
-                    await Respond(context, "Service feature not found");
+                    await Respond(context, "Service not found");
                     return;
                 }
 
@@ -92,14 +117,14 @@ namespace helpers.Middlewares
                     var regex = Regex.Matches(endpoint.Route, regexRoute.Regex);
                     if (regex.Count == 0)
                     {
-                        await Respond(context, "Route not found on feature endpoint");
+                        await Respond(context, "Route not found");
                         return;
                     }
                     if (regex.Count > 0)
                     {
                         regexRoute.RouteParams.ForEach(_ =>
                         {
-                            _.Value = regex[_.Index].Groups[1].Value;
+                            _.Value = regex[0].Groups[_.Index].Value;
                         });
                     }
                 }
@@ -108,25 +133,21 @@ namespace helpers.Middlewares
                 var state = DeterminingAwaitable(featureEntry);
                 context.Response.Headers["content-type"] = "application/json";
 
-                InvokeEntryAttributes(service, context, endpoint);
+                InvokeEntryAttributes(service, context, endpoint, featureEntry);
 
-                object featureResponse = await InvokeFeatureEntry(context, service, featureEntry, state, regexRoute);
+                object featureResponse = await InvokeFeatureEntry(context, endpoint, service, featureEntry, state, regexRoute);
 
-                var serializerSettings = new JsonSerializerSettings
-                {
-                    ContractResolver = new CamelCasePropertyNamesContractResolver()
-                };
 
-                logs.AppendLine($"[{requestId}] Response: {featureResponse.Stringify(serializerSettings)}");
+                logs.AppendLine($"[{requestId}] Response: {featureResponse.Stringify(_serializerSettings)}");
                 if (_is_logging_enabled) _logger.LogInfo(logs);
 
-                await context.Response.WriteAsync(featureResponse.Stringify(serializerSettings));
+                await context.Response.WriteAsync(featureResponse.Stringify(_serializerSettings));
                 return;
             }
-            catch (ParamerException e)
+            catch (ParameterException e)
             {
                 _logger.LogInfo(logs);
-                _logger.LogError($"[{requestId}]{e}");
+                _logger.LogError($"[{requestId}] {e}");
 
                 await Respond(context, e.Message);
                 return;
@@ -134,7 +155,7 @@ namespace helpers.Middlewares
             catch (CustomException e)
             {
                 _logger.LogInfo(logs);
-                _logger.LogError($"[{requestId}]{e}");
+                _logger.LogError($"[{requestId}] {e}. Request Code: {requestId}");
 
                 await Respond(context, e.Message);
                 return;
@@ -142,7 +163,7 @@ namespace helpers.Middlewares
             catch (WarningException e)
             {
                 _logger.LogInfo(logs);
-                _logger.LogWarning($"[{requestId}]{e}");
+                _logger.LogWarning($"[{requestId}] {e}");
 
                 await Respond(context, e.Message);
                 return;
@@ -150,9 +171,9 @@ namespace helpers.Middlewares
             catch (Exception e)
             {
                 _logger.LogInfo(logs);
-                _logger.LogError($"[{requestId}]{e.InnerException ?? e}");
+                _logger.LogError($"[{requestId}] {e.InnerException ?? e}");
 
-                await Respond(context, "A system error occured. Please try again");
+                await Respond(context, $"A system error occured. Please try again. Request Code: {requestId}");
                 return;
             }
         }
@@ -170,7 +191,7 @@ namespace helpers.Middlewares
                     var match = regex[i];
                     if (match.Success)
                     {
-                        routeRegex.RouteParams.Add(new RouteRegexParam { Index = i, Name = match.Groups[1].Value, Type = match.Groups[2].Value });
+                        routeRegex.RouteParams.Add(new RouteRegexParam { Index = i + 1, Name = match.Groups[1].Value, Type = match.Groups[2].Value });
                         if (match.Groups[2].Value == "bool")
                             route = route.Replace(match.Value, "(true|false)");
 
@@ -188,23 +209,30 @@ namespace helpers.Middlewares
             return routeRegex;
         }
 
-        private void InvokeEntryAttributes(BaseServiceFeature service, HttpContext context, Endpoint endpoint)
+        private void InvokeEntryAttributes(BaseServiceFeature service, HttpContext context, Endpoint endpoint, MethodInfo entry)
         {
-
             SetFeatureDefaultValues(context, endpoint, service);
+            var attributes = entry.GetCustomAttributes(true).ToList();
+            for (int j = 0; j < attributes.Count; j++)
+            {
+                if (attributes[j] is IEntryAttribute)
+                {
+                    (attributes[j] as IEntryAttribute).InitAttribute(context, endpoint, _serviceProvider);
+                }
+            }
         }
 
-        private async Task<object> InvokeFeatureEntry(HttpContext context, BaseServiceFeature service, MethodInfo matchingFeature, (bool IsAwaitable, bool ReturnData) state, RouteRegex routeRegex)
+        private async Task<object> InvokeFeatureEntry(HttpContext context, Endpoint endpoint, BaseServiceFeature service, MethodInfo matchingFeature, (bool IsAwaitable, bool ReturnData) state, RouteRegex routeRegex)
         {
             object featureResponse = new { };
             if (state.IsAwaitable && state.ReturnData)
-                featureResponse = await (dynamic)matchingFeature.Invoke(service, PopulateParameters(matchingFeature.GetParameters(), context, routeRegex));
+                featureResponse = await (dynamic)matchingFeature.Invoke(service, PopulateParameters(matchingFeature.GetParameters(), endpoint, context, routeRegex));
 
             if (state.IsAwaitable && !state.ReturnData)
                 await (dynamic)matchingFeature.Invoke(service, null);
 
             if (!state.IsAwaitable && state.ReturnData)
-                featureResponse = matchingFeature.Invoke(service, PopulateParameters(matchingFeature.GetParameters(), context, routeRegex));
+                featureResponse = matchingFeature.Invoke(service, PopulateParameters(matchingFeature.GetParameters(), endpoint, context, routeRegex));
 
             if (!state.IsAwaitable && !state.ReturnData)
                 matchingFeature.Invoke(service, null);
@@ -224,11 +252,13 @@ namespace helpers.Middlewares
 
             Event.Subscribe += (string type, dynamic[] data) =>
             {
-                if (type.ToLower() == "log")
+                if ((new string[] { "log" }).Contains(type.ToLower()))
+                {
                     for (int i = 0; i < data.Length; i++)
                     {
                         logs.AppendLine($"[{requestId}] {data[i]}");
                     }
+                }
             };
 
         }
@@ -236,11 +266,11 @@ namespace helpers.Middlewares
         private async Task Respond(HttpContext context, string message)
         {
             context.Response.Headers["content-type"] = "application/json";
-            var response = new ApiResponse { Success = false, ResponseMessage = message };
-            await context.Response.WriteAsync(response.Stringify());
+            var response = new UssdApiResponse { Success = false, ResponseBody = message };
+            await context.Response.WriteAsync(response.Stringify(_serializerSettings));
         }
 
-        private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, HttpContext httpContext, RouteRegex routeRegex)
+        private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, Endpoint endpoint, HttpContext httpContext, RouteRegex routeRegex)
         {
             object[] p = new object[parameters.Count()];
             try
@@ -254,7 +284,7 @@ namespace helpers.Middlewares
                     {
                         if (attributes[j] is IParameterAttribute)
                         {
-                            (attributes[j] as IParameterAttribute).InitAttribute(parameter, httpContext, p);
+                            (attributes[j] as IParameterAttribute).InitAttribute(parameter, httpContext, endpoint, p);
                         }
                     }
                     if (p[i] == null)
@@ -283,7 +313,7 @@ namespace helpers.Middlewares
             }
             catch (Exception e)
             {
-                throw new ParamerException(e.Message);
+                throw new ParameterException(e.Message);
             }
 
             return p.ToArray();
@@ -293,7 +323,7 @@ namespace helpers.Middlewares
         {
             var isAwaitable = methodInfo.ReturnType.GetMethod(nameof(Task.GetAwaiter)) != null;
 
-            if (isAwaitable) 
+            if (isAwaitable)
                 return (true, methodInfo.ReturnType.IsGenericType);
             else
                 return (false, methodInfo.ReturnType != typeof(void));

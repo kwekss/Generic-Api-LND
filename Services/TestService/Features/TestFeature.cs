@@ -5,7 +5,7 @@ using TestService.Models;
 
 namespace TestService.Features
 {
-    [Feature(Name = "TestFeature")]
+    [Feature(Name = "Test")]
     public class TestFeature : BaseServiceFeature
     {
         public TestFeature() : base()
@@ -14,13 +14,13 @@ namespace TestService.Features
         }
 
         [Entry(Method = "POST/GET", Route = "id/{id}")]
-        public ApiResponse MyEntryMethod(int id)
+        public ApiResponse Entry([FromJsonBody] TestModel payload)
         {
             return new ApiResponse
             {
                 Success = true,
-                ResponseMessage = $"I am { FeatureName } from {Service} and id: {id}",
-                Data = new DataModel { Prop = "Data" }
+                ResponseMessage = $"I am { FeatureName } from {Service} and id: {payload.Prop}",
+                Data = payload
             };
         }
 
