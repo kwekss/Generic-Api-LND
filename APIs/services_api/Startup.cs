@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using TestService;
 
 namespace services_api
@@ -29,17 +31,22 @@ namespace services_api
         public void ConfigureServices(IServiceCollection services)
         {
             DatabaseConnections databaseConnections = new DatabaseConnections();
+            JToken db2 = JObject.FromObject(new { });
             _config.Bind("Databases", databaseConnections);
+            //_config.Bind("Databases", db2);
+
+            var db = _config.GetValue<JToken>("Databases");
 
             services
                 .AddSingleton(databaseConnections)
                 .AddHttpClient()
-                .AddHttpContextAccessor()
+                .AddHttpContextAccessor() 
                 .AddTransient<IFileLogger, FileLogger>(x => new FileLogger(_config.GetValue("LOG_DIR", "")))
-                .AddSingleton<IFeatureContext, FeatureContext>()
+                .AddTransient<IFeatureContext, FeatureContext>()
                 .AddSingleton<IStoredProcedureExecutor, NpgsqlStoredProcedureExecutor>()
-                .AddSingleton<ISmsNotification, SmsNotification>()
                 .AddSingleton<IDBHelper, DBHelper>()
+                .AddTransient<IHttpHelper, HttpHelper>()
+                .AddSingleton<ISmsNotification, SmsNotification>()
                 .AddSingleton<IMongoDBHelper, MongoDBHelper>()
                 .AddSingleton<ISessionManager, SessionManager>()
                 .AddTestService()
@@ -48,6 +55,7 @@ namespace services_api
             services
                 .AddCors()
                 .AddSingleton(x => services)
+                .AddSingleton<BackgroundRunner>()
                 .AddControllers();
         }
 
@@ -58,6 +66,8 @@ namespace services_api
             {
                 app.UseDeveloperExceptionPage();
             }
+            // Start Backgroun Service Automatically
+            app.ApplicationServices.GetRequiredService<BackgroundRunner>();
 
             app.UseRouting();
             app.UseCors(o =>

@@ -113,8 +113,8 @@ namespace helpers.Middlewares
                 RouteRegex regexRoute = null;
                 if (!string.IsNullOrWhiteSpace(entry.Route))
                 {
-                    regexRoute = ConvertRouteToRegex(entry.Route);
-                    var regex = Regex.Matches(endpoint.Route, regexRoute.Regex);
+                    regexRoute = ConvertRouteToRegex(entry.Route.ToLower());
+                    var regex = Regex.Matches(endpoint.Route.ToLower(), regexRoute.Regex);
                     if (regex.Count == 0)
                     {
                         await Respond(context, "Route not found");

@@ -1,6 +1,7 @@
 ﻿using helpers.Database.Executors;
 using helpers.Database.Extensions;
 using helpers.Database.Models;
+using Newtonsoft.Json.Linq;
 using Npgsql;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -19,6 +20,13 @@ namespace helpers.Database
         }
 
         public DatabaseConnections GetConnections() => _connections;
+        public Connection GetConnection(string connectionName) => GetConnection<Connection>(connectionName);
+        public T GetConnection<T>(string connectionName)
+        {
+            JObject connections = JObject.FromObject(_connections.AllConnections);
+            JToken connection = connections.SelectToken(connectionName);
+            return connection.ToObject<T>();
+        }
         public async Task Subscribe(string tag, NotificationEventHandler handler)
         {
             _storedProcedureExecutor.Subscribe(_connections.Default, tag, handler);

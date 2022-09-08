@@ -6,6 +6,8 @@
         public Connection SMS { get; set; }
         public Connection CaaS { get; set; }
         public MongoConnection Mongo { get; set; }
+        public dynamic AllConnections { get; set; }
+
     }
 
     public class Connection
