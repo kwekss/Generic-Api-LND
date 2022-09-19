@@ -1,13 +1,16 @@
-﻿using helper.Logger;
-using helpers.Atttibutes;
+﻿using helpers.Atttibutes;
 using helpers.Exceptions;
+using helpers.Interfaces;
 using helpers.Notifications;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Serilog;
+using Serilog.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,39 +24,45 @@ namespace helpers.Middlewares
 {
     public class ServiceFeatureMiddleware
     {
+        private readonly IDocumentationBuilder _documentationBuilder;
+        private readonly IMessengerHub _messengerHub;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IFileLogger _logger;
         private readonly IConfiguration _config;
         private readonly RequestDelegate _next;
         private readonly bool _is_logging_enabled;
+        private readonly bool _is_api_doc_enabled;
         private readonly string _url_prefix;
+        private readonly string _api_type;
         private readonly JsonSerializerSettings _serializerSettings;
 
-        public ServiceFeatureMiddleware(IServiceProvider serviceProvider, IFileLogger fileLogger, IConfiguration config, RequestDelegate next)
+        public ServiceFeatureMiddleware(IDocumentationBuilder documentationBuilder, IMessengerHub messengerHub, IServiceProvider serviceProvider, IConfiguration config, RequestDelegate next)
         {
+            _documentationBuilder = documentationBuilder;
+            _messengerHub = messengerHub;
             _serviceProvider = serviceProvider;
-            _logger = fileLogger;
             _config = config;
             _next = next;
             _is_logging_enabled = Convert.ToBoolean(config["ENABLE_LOGGING"] ?? "false");
+            _is_api_doc_enabled = Convert.ToBoolean(config["ENABLE_API_DOCS"] ?? "false");
+            _api_type = config["API_TYPE"] ?? "WEB_API";
             _url_prefix = config["URL_PREFIX"] ?? "";
 
             _serializerSettings = new JsonSerializerSettings
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
+
+#if DEBUG
+            _is_api_doc_enabled = true;
+#endif
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
-            StringBuilder logs = new StringBuilder();
-            Guid requestId = Guid.NewGuid();
             try
             {
+                LogContext.PushProperty("CorrelationId", GetCorrelationId(context));
 
-                StartLogger(logs, requestId);
-
-                Event.Dispatch("log", $"Request start @ {DateTime.Now}");
                 var urlPath = context.Request.Path.Value.ToLower();
                 if (!string.IsNullOrWhiteSpace(_url_prefix))
                 {
@@ -62,7 +71,22 @@ namespace helpers.Middlewares
                         await Respond(context, "Invalid URL provided.");
                         return;
                     }
-                    urlPath = urlPath.Replace(_url_prefix.ToLower(), "");
+                    var regex = new Regex(Regex.Escape(_url_prefix.ToLower()));
+                    urlPath = regex.Replace(urlPath, "", 1).Trim('/');
+                    //urlPath = urlPath.Replace(_url_prefix.ToLower(), "", 1);
+                }
+
+                if (_is_api_doc_enabled && urlPath.Trim('/').ToLower().StartsWith("api-docs"))
+                {
+                    if (urlPath.ToLower().EndsWith("specs"))
+                    {
+                        await _documentationBuilder.RenderOpenApiSpecs();
+                    }
+                    else
+                    {
+                        await _documentationBuilder.RenderView();
+                    }
+                    return;
                 }
 
                 var path = urlPath.Split('/').Where(_ => !string.IsNullOrWhiteSpace(_)).ToList();
@@ -82,6 +106,15 @@ namespace helpers.Middlewares
                     await _next.Invoke(context);
                     return;
                 }
+
+                if (endpoint.RequestBody.Length > 0)
+                {
+                    _messengerHub.Publish(new LogInfo("info", $"Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}"));
+                    Log.Information($"Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}");
+                }
+
+                if (context.Request.QueryString.HasValue)
+                    _messengerHub.Publish(new LogInfo("info", $"Request Query: {context.Request.QueryString.ToUriComponent()}"));
 
                 var service = _serviceProvider.GetServices<BaseServiceFeature>()
                     .FirstOrDefault(_ => _.GetType().GetCustomAttributes().Any(_ => _.GetType() == typeof(FeatureAttribute)
@@ -137,43 +170,33 @@ namespace helpers.Middlewares
 
                 object featureResponse = await InvokeFeatureEntry(context, endpoint, service, featureEntry, state, regexRoute);
 
-
-                logs.AppendLine($"[{requestId}] Response: {featureResponse.Stringify(_serializerSettings)}");
-                if (_is_logging_enabled) _logger.LogInfo(logs);
+                Log.Information($"Response: {featureResponse.Stringify(_serializerSettings)}");
 
                 await context.Response.WriteAsync(featureResponse.Stringify(_serializerSettings));
                 return;
             }
             catch (ParameterException e)
             {
-                _logger.LogInfo(logs);
-                _logger.LogError($"[{requestId}] {e}");
 
                 await Respond(context, e.Message);
                 return;
             }
             catch (CustomException e)
             {
-                _logger.LogInfo(logs);
-                _logger.LogError($"[{requestId}] {e}. Request Code: {requestId}");
-
+                Log.Error(e.ToString());
                 await Respond(context, e.Message);
                 return;
             }
             catch (WarningException e)
             {
-                _logger.LogInfo(logs);
-                _logger.LogWarning($"[{requestId}] {e}");
-
+                Log.Error(e.ToString());
                 await Respond(context, e.Message);
                 return;
             }
             catch (Exception e)
             {
-                _logger.LogInfo(logs);
-                _logger.LogError($"[{requestId}] {e.InnerException ?? e}");
-
-                await Respond(context, $"A system error occured. Please try again. Request Code: {requestId}");
+                Log.Error(e.ToString());
+                await Respond(context, $"A system error occured. Please try again");
                 return;
             }
         }
@@ -247,27 +270,33 @@ namespace helpers.Middlewares
             typeof(BaseServiceFeature).GetProperty("Context").SetValue(service, context, null);
         }
 
-        public void StartLogger(StringBuilder logs, Guid requestId)
+        public MessageSubscriptionToken StartLogger(StringBuilder logs, Guid requestId)
         {
-
-            Event.Subscribe += (string type, dynamic[] data) =>
+            var token = _messengerHub.Subscribe<LogInfo>(x =>
             {
-                if ((new string[] { "log" }).Contains(type.ToLower()))
+                for (int i = 0; i < x.Messages.Count; i++)
                 {
-                    for (int i = 0; i < data.Length; i++)
-                    {
-                        logs.AppendLine($"[{requestId}] {data[i]}");
-                    }
+                    logs.AppendLine($"[{x.Type.ToUpper()}] [{x.Timestamp:yyyy-MM-dd hh:mm:ss tt}] [{requestId}] {x.Messages[i]}");
                 }
-            };
+            });
 
+            return token;
         }
 
         private async Task Respond(HttpContext context, string message)
         {
             context.Response.Headers["content-type"] = "application/json";
-            var response = new UssdApiResponse { Success = false, ResponseBody = message };
-            await context.Response.WriteAsync(response.Stringify(_serializerSettings));
+            if (_api_type == "USSD_API")
+            {
+                var response = new UssdApiResponse { Success = false, ResponseBody = message };
+                await context.Response.WriteAsync(response.Stringify(_serializerSettings));
+            }
+            else
+            {
+                var response = new UssdApiResponse { Success = false, ResponseBody = message };
+                await context.Response.WriteAsync(response.Stringify(_serializerSettings));
+            }
+
         }
 
         private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, Endpoint endpoint, HttpContext httpContext, RouteRegex routeRegex)
@@ -327,6 +356,12 @@ namespace helpers.Middlewares
                 return (true, methodInfo.ReturnType.IsGenericType);
             else
                 return (false, methodInfo.ReturnType != typeof(void));
+        }
+
+        public string GetCorrelationId(HttpContext httpContext)
+        {
+            httpContext.Request.Headers.TryGetValue("Cko-Correlation-Id", out StringValues correlationId);
+            return correlationId.FirstOrDefault() ?? httpContext.TraceIdentifier;
         }
     }
 }

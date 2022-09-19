@@ -2,7 +2,7 @@
 using models;
 using System.Reflection;
 
-namespace helpers.Atttibutes
+namespace helpers.Interfaces
 {
     internal interface IParameterAttribute
     {

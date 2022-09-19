@@ -1,8 +1,14 @@
-﻿namespace TestService.Models
+﻿using models;
+
+namespace TestService.Models
 {
     public class TestModel
     {
         public string Prop { get; set; }
+        public int Id { get; set; }
+        
+        [ApiDoc(Description = "Some description for data object")]
+        public DataModel Data { get; set; }
     }
     public class DataModel
     {

@@ -1,4 +1,4 @@
-﻿using helpers.Notifications;
+﻿using helpers.Interfaces;
 using Microsoft.AspNetCore.Http;
 using models;
 using System;
@@ -19,7 +19,6 @@ namespace helpers.Atttibutes
             args[instance.Position] = GetPayloadFromQuery(context, instance.ParameterType).Result;
         }
 
-
         private async Task<dynamic> GetPayloadFromQuery(HttpContext httpContext, Type type)
         {
             var source = HttpUtility.ParseQueryString(httpContext.Request.QueryString.ToUriComponent());
@@ -29,7 +28,6 @@ namespace helpers.Atttibutes
                 if (val.Length > 1) return val;
                 return (val as Array).GetValue(0);
             }));
-            Event.Dispatch("log", $"Request Query Parameters: {serialized}");
             return Newtonsoft.Json.JsonConvert.DeserializeObject(serialized, type);
         }
     }

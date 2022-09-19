@@ -1,5 +1,5 @@
-﻿using helpers.Engine;
-using helpers.Exceptions;
+﻿using helpers.Exceptions;
+using helpers.Interfaces;
 using helpers.Notifications;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,15 +46,17 @@ namespace helpers.Atttibutes
             DateTime requestTime = Convert.ToDateTime(pathValue.ToString());
 
             var integrator = services.GetService<IIntegratorHelper>();
-            Event.Dispatch("log", $"Auth String: {authorizationString}");
+            var messengerHub = services.GetService<IMessengerHub>();
+            messengerHub.Publish(new LogInfo("info", $"Auth String: {authorizationString}"));
             if (integrator != null)
             {
                 var validateRequest = integrator.ValidateIntegrator(authorizationString, requestTime).Result;
                 if (!string.IsNullOrWhiteSpace(validateRequest))
-                {
-                    Event.Dispatch("log", $"Validation: {validateRequest}");
                     throw new CustomException($"{validateRequest}");
-                }
+            }
+            else
+            {
+                throw new CustomException("An error occured. Please try again");
             }
         }
 
@@ -64,4 +66,8 @@ namespace helpers.Atttibutes
             return JsonConvert.DeserializeObject(data);
         }
     }
+    
+    
+
+
 }

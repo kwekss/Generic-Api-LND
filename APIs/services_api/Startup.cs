@@ -1,18 +1,13 @@
-using helper.Logger;
-using helpers.Database;
-using helpers.Database.Executors;
-using helpers.Database.Models;
+using BackgroundService;
 using helpers.Engine;
 using helpers.Middlewares;
-using helpers.Notifications;
-using helpers.Session;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using TestService;
 
 namespace services_api
@@ -30,26 +25,11 @@ namespace services_api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            DatabaseConnections databaseConnections = new DatabaseConnections();
-            JToken db2 = JObject.FromObject(new { });
-            _config.Bind("Databases", databaseConnections);
-            //_config.Bind("Databases", db2);
-
-            var db = _config.GetValue<JToken>("Databases");
-
             services
-                .AddSingleton(databaseConnections)
-                .AddHttpClient()
-                .AddHttpContextAccessor() 
-                .AddTransient<IFileLogger, FileLogger>(x => new FileLogger(_config.GetValue("LOG_DIR", "")))
-                .AddTransient<IFeatureContext, FeatureContext>()
-                .AddSingleton<IStoredProcedureExecutor, NpgsqlStoredProcedureExecutor>()
-                .AddSingleton<IDBHelper, DBHelper>()
-                .AddTransient<IHttpHelper, HttpHelper>()
-                .AddSingleton<ISmsNotification, SmsNotification>()
-                .AddSingleton<IMongoDBHelper, MongoDBHelper>()
-                .AddSingleton<ISessionManager, SessionManager>()
+                .AddHttpContextAccessor()
+                .AddAppDependencies(_config)
                 .AddTestService()
+                .AddBackgroudService()
                 ;
 
             services
@@ -66,7 +46,7 @@ namespace services_api
             {
                 app.UseDeveloperExceptionPage();
             }
-            // Start Backgroun Service Automatically
+            // Start Background Service And all AutoRun Automatically
             app.ApplicationServices.GetRequiredService<BackgroundRunner>();
 
             app.UseRouting();
@@ -85,6 +65,22 @@ namespace services_api
             {
                 endpoints.MapControllers();
             });
+        }
+    }
+
+    public static class IConfigurationExtensions
+    {
+        public static Dictionary<string, object> ToNestedDicionary(this IConfiguration configuration)
+        {
+            var result = new Dictionary<string, object>();
+            var children = configuration.GetChildren();
+            if (children.Any())
+                foreach (var child in children)
+                    result.Add(child.Key, child.ToNestedDicionary());
+            else
+                if (configuration is IConfigurationSection section)
+                result.Add(section.Key, section.Get(typeof(object)));
+            return result;
         }
     }
 }

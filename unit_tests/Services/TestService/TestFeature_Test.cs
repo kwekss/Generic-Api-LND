@@ -21,7 +21,7 @@ namespace unit_tests.Services.TestService
         [Test]
         public async Task Will_Return_Exact_Response_From_Feature()
         {
-            var input = new TestModel { Prop = "1234" }; 
+            var input = new TestModel { Prop = "1234" };
             var entryResponse = feature.Entry(input);
             Assert.IsNotNull(entryResponse);
             Assert.IsTrue(entryResponse.Success);

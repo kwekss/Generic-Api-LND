@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using models;
 
-namespace helpers.Engine
+namespace helpers.Interfaces
 {
     public interface IFeatureContext
     {

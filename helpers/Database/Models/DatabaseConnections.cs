@@ -1,25 +1,19 @@
-﻿namespace helpers.Database.Models
+﻿using System.Collections.Generic;
+
+namespace helpers.Database.Models
 {
-    public class DatabaseConnections
-    {
-        public Connection Default { get; set; }
-        public Connection SMS { get; set; }
-        public Connection CaaS { get; set; }
-        public MongoConnection Mongo { get; set; }
-        public dynamic AllConnections { get; set; }
-
-    }
-
     public class Connection
     {
+        public string Name { get; set; }
         public string Schema { get; set; }
         public string ConnectionString { get; set; }
+        public List<Extra> Extra { get; set; }
     }
 
-    public class MongoConnection
+    public class Extra
     {
-        public string Server { get; set; }
-        public string Database { get; set; }
-        public string Collection { get; set; }
+        public string Key { get; set; }
+        public string Value { get; set; }
     }
+
 }

@@ -1,5 +1,4 @@
-﻿using helpers.Database.Models;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using System;
 using System.Text;
 
@@ -9,10 +8,11 @@ namespace helpers.Database
     {
         private readonly MongoClient _client;
         private readonly IMongoDatabase _db;
-        public MongoDBHelper(DatabaseConnections connections)
+        public MongoDBHelper(IDBHelper dbHelper)
         {
-            _client = new MongoClient(connections.Mongo.Server);
-            _db = _client.GetDatabase(connections.Mongo.Database);
+            var mongoConnection = dbHelper.GetConnection("Mongo");
+            _client = new MongoClient(mongoConnection.ConnectionString);
+            _db = _client.GetDatabase(mongoConnection.Schema);
         }
 
         public IMongoCollection<T> GetCollection<T>(string collectionName, string sessionKey)

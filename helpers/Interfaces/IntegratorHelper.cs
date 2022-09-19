@@ -8,11 +8,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace helpers.Engine
+namespace helpers.Interfaces
 {
     public class IntegratorHelper : IIntegratorHelper
     {
         protected static List<Integrator> inMemoryIntegratorList;
+        public const string InvalidAuthHeader = "Invalid authorization header";
         public const string InvalidIntegratorMessage = "Integrator account does not exist";
         public const string RequestTooOldMessage = "Invalid request. Request time is too old";
         public const string RequestInFutureMessage = "Invalid request. Request time cannot be in future";
@@ -28,7 +29,7 @@ namespace helpers.Engine
         }
         public async Task<string> ValidateIntegrator(string authorizationString, DateTime requestTime)
         {
-            if (string.IsNullOrEmpty(authorizationString)) return InvalidIntegratorMessage;
+            if (string.IsNullOrEmpty(authorizationString)) return InvalidAuthHeader;
 
             authorizationString = authorizationString.Trim();
             string[] authorizationArray = authorizationString.Split(Convert.ToChar(" "));
@@ -69,6 +70,8 @@ namespace helpers.Engine
         private List<Integrator> GetIntegrators()
         {
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configs", "Integrators.json");
+            if (!File.Exists(path)) return null;
+
             using (var reader = new StreamReader(path))
             {
                 var result = reader.ReadToEnd();

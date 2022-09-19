@@ -1,4 +1,5 @@
-﻿using helpers.Notifications;
+﻿using helpers.Exceptions;
+using helpers.Interfaces;
 using Microsoft.AspNetCore.Http;
 using models;
 using Newtonsoft.Json;
@@ -19,7 +20,7 @@ namespace helpers.Atttibutes
         public dynamic GetPayloadFromBody(Endpoint endpoint, Type type)
         {
             var payloadString = Encoding.UTF8.GetString(endpoint.RequestBody);
-            Event.Dispatch("log", $"Request Payload: {payloadString}");
+            if (string.IsNullOrWhiteSpace(payloadString)) throw new CustomException("Invalid request payload");
             return JsonConvert.DeserializeObject(payloadString, type);
         }
     }

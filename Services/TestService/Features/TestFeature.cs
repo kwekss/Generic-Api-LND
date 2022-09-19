@@ -1,26 +1,32 @@
 ﻿using helpers;
 using helpers.Atttibutes;
+using helpers.Interfaces;
 using models;
+using System.Threading.Tasks;
 using TestService.Models;
 
 namespace TestService.Features
 {
+    [ApiDoc(Description = "This is a test endpoint")]
     [Feature(Name = "Test")]
     public class TestFeature : BaseServiceFeature
     {
-        public TestFeature() : base()
-        {
+        private readonly IHttpHelper _httpHelper;
 
+        public TestFeature(IHttpHelper httpHelper) : base()
+        {
+            _httpHelper = httpHelper;
         }
 
-        [Entry(Method = "POST/GET", Route = "id/{id}")]
-        public ApiResponse Entry([FromJsonBody] TestModel payload)
+        [Entry(Method = "POST", Route = "id/{id}")]
+        public async Task<ApiResponse> Entry([FromJsonBody] TestModel payload, int id)
         {
+            var http = await _httpHelper.Get<string>("https://jsonplaceholder.typicode.com/todos/1", null, null, true);
             return new ApiResponse
             {
                 Success = true,
-                ResponseMessage = $"I am { FeatureName } from {Service} and id: {payload.Prop}",
-                Data = payload
+                ResponseMessage = $"I am {FeatureName} from {Service} and id: {payload.Prop}",
+                Data = new { payload, apiResponse = http.ParseObject<dynamic>() }
             };
         }
 
