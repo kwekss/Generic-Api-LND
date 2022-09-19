@@ -37,7 +37,7 @@ namespace helpers.Engine
             _httpContextAccessor.HttpContext.Response.Headers["content-type"] = "application/json";
 
 
-            var projectName = ProjectName();
+            var projectName = ProjectName(name);
 
             string host = $"{_httpContextAccessor.HttpContext.Request.Host}";
             JObject paths = new JObject();
@@ -114,7 +114,7 @@ namespace helpers.Engine
                     apiPathInfo.responses["200"] = JObject.FromObject(resp200);
 
                     var methods = entryAttr.Method.Split("/").ToList();
-                    path = $"{path}/{entryAttr.Route.Trim('/')}";
+                    path = $"{path}{(!string.IsNullOrWhiteSpace(entryAttr.Route)?$"/{entryAttr.Route.Trim('/')}" :"")}";
                     paths[path] = new JObject();
 
                     var entryParameters = entryType.GetParameters()?.ToList();
@@ -343,7 +343,7 @@ namespace helpers.Engine
         {
             _httpContextAccessor.HttpContext.Response.Headers["content-type"] = "text/html";
             var html = "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\"> <meta name=\"description\" content=\"\"> <meta name=\"author\" content=\"\"> <title>$$name$$</title> <!-- Elements: Web Component --> <script src=\"https://unpkg.com/@stoplight/elements/web-components.min.js\"></script> <link rel=\"stylesheet\" href=\"https://unpkg.com/@stoplight/elements/styles.min.css\"> <style> body { display: flex; flex-direction: column; height: 100vh; } main { flex: 1 0 0; overflow: hidden; } </style> </head> <body> <main role=\"main\"> <elements-api apiDescriptionUrl=\"$$url_prefix$$/api-docs/specs\" router=\"hash\" /> </main> </body> </html>"
-                .Replace("$$name$$", ProjectName())
+                .Replace("$$name$$", ProjectName(name))
                 .Replace("$$url_prefix$$", _url_prefix);
 
             await _httpContextAccessor.HttpContext.Response.WriteAsync(html);
@@ -351,11 +351,11 @@ namespace helpers.Engine
 
 
 
-        private string ProjectName()
+        private string ProjectName(string projectName)
         {
             var SolutionFullPath = Directory.GetParent(Directory.GetCurrentDirectory()).FullName;
             var tempStrings = SolutionFullPath.Split('\\');
-            return _textInfo.ToTitleCase($"{tempStrings[tempStrings.Length - 2].Replace("_", " ").Replace("-", " ")} {tempStrings[tempStrings.Length - 1]}");
+            return _textInfo.ToTitleCase($"{tempStrings[tempStrings.Length - 2].Replace("_", " ").Replace("-", " ")} - {projectName.Replace("_", " ").Replace("-", " ")} ");
         }
 
 

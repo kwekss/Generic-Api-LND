@@ -6,7 +6,7 @@ namespace models
     public class ApiDocAttribute : Attribute
     {
         public string Description { get; set; }
-        public dynamic Default { get; set; }
+        public object Default { get; set; }
         public ApiDocAttribute()
         {
 

@@ -63,6 +63,8 @@ namespace helpers.Middlewares
             {
                 LogContext.PushProperty("CorrelationId", GetCorrelationId(context));
 
+                var projectName = AppDomain.CurrentDomain.FriendlyName;
+
                 var urlPath = context.Request.Path.Value.ToLower();
                 if (!string.IsNullOrWhiteSpace(_url_prefix))
                 {
@@ -80,11 +82,11 @@ namespace helpers.Middlewares
                 {
                     if (urlPath.ToLower().EndsWith("specs"))
                     {
-                        await _documentationBuilder.RenderOpenApiSpecs();
+                        await _documentationBuilder.RenderOpenApiSpecs(projectName);
                     }
                     else
                     {
-                        await _documentationBuilder.RenderView();
+                        await _documentationBuilder.RenderView(projectName);
                     }
                     return;
                 }

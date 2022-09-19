@@ -5,9 +5,9 @@ namespace TestService.Models
     public class TestModel
     {
         public string Prop { get; set; }
+        [ApiDoc(Description = "Some description for data object", Default = 1234)]
         public int Id { get; set; }
         
-        [ApiDoc(Description = "Some description for data object")]
         public DataModel Data { get; set; }
     }
     public class DataModel
