@@ -30,7 +30,7 @@ namespace helpers.Engine
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
         }
-        public async Task<T> Post<T>(string url, dynamic payload, List<(string key, string value)> headers = null, bool returnRaw = false)
+        public async Task<T> Post<T>(string url, object payload, List<(string key, string value)> headers = null, bool returnRaw = false)
         {
 
             var client = _httpClientFactory.CreateClient();
@@ -144,7 +144,7 @@ namespace helpers.Engine
 
         }
 
-        public async Task<T> Get<T>(string url, dynamic payload = null, List<(string key, string value)> headers = null, bool returnRaw = false)
+        public async Task<T> Get<T>(string url, object payload = null, List<(string key, string value)> headers = null, bool returnRaw = false)
         {
             var client = _httpClientFactory.CreateClient();
 

@@ -58,7 +58,7 @@ namespace helpers.Middlewares
         }
 
         public async Task InvokeAsync(HttpContext context)
-        {
+        { 
             try
             {
                 LogContext.PushProperty("CorrelationId", GetCorrelationId(context));
