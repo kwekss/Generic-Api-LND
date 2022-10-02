@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
@@ -109,9 +110,10 @@ namespace helpers.Engine
         {
 
             HttpClient client = _httpClientFactory.CreateClient();
-            var xml_string_payload = payload.ToString();
-
-            List<string> logs = new List<string>();
+            var xml_string_payload = payload.ToString(); 
+            xml_string_payload = Regex.Replace(xml_string_payload, ">\\s+", ">");
+            xml_string_payload = Regex.Replace(xml_string_payload, "\\s+<", "<");
+             
             Log.Information($"HTTP Request Path: {url}");
             Log.Information($"HTTP Request Payload: {xml_string_payload}");
             Log.Information($"HTTP Request Headers: {headers.Stringify()}");
