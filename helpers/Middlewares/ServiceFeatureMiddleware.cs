@@ -290,12 +290,12 @@ namespace helpers.Middlewares
             context.Response.Headers["content-type"] = "application/json";
             if (_api_type == "USSD_API")
             {
-                var response = new UssdApiResponse { Success = false, ResponseBody = message };
+                var response = new UssdApiResponse { ResponseBody = message };
                 await context.Response.WriteAsync(response.Stringify(_serializerSettings));
             }
             else
             {
-                var response = new UssdApiResponse { Success = false, ResponseBody = message };
+                var response = new ApiResponse { ResponseMessage = message };
                 await context.Response.WriteAsync(response.Stringify(_serializerSettings));
             }
 
