@@ -24,7 +24,7 @@ namespace helpers.Database
         public List<Connection> GetConnections() => _connections;
         public Connection GetConnection(string connectionName)
         {
-            return _connections.FirstOrDefault(_ => _.Name.ToLower() == connectionName.ToLower());
+            return _connections.FirstOrDefault(_ => _.Name?.ToLower() == connectionName.ToLower());
         }
         public async Task Subscribe(string tag, NotificationEventHandler handler)
         {

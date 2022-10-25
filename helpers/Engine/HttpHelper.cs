@@ -110,7 +110,7 @@ namespace helpers.Engine
         {
 
             HttpClient client = _httpClientFactory.CreateClient();
-            var xml_string_payload = payload.ToString(); 
+            var xml_string_payload = payload.OuterXml; 
             xml_string_payload = Regex.Replace(xml_string_payload, ">\\s+", ">");
             xml_string_payload = Regex.Replace(xml_string_payload, "\\s+<", "<");
              

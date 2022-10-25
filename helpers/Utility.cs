@@ -13,90 +13,76 @@ namespace helpers
 {
     public static class Utility
     {
+
+        public static string COUNTRY_CODE = "233";
         public static string FormatNumber10Digits(string phoneNumber, bool returnIfInvalid = false)
         {
             phoneNumber = phoneNumber.Trim();
-            if (phoneNumber == null ||
-                phoneNumber.Trim() == "" ||
-                !Regex.IsMatch(phoneNumber, @"^\d+$"))
+            if (phoneNumber == null || phoneNumber.Trim() == "" || !Regex.IsMatch(phoneNumber, "^\\d+$"))
             {
                 if (returnIfInvalid)
                 {
                     return phoneNumber;
                 }
-                else
-                {
-                    throw new WarningException($"Invalid Number: {phoneNumber}");
-                }
-
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
-
             if (phoneNumber.Length == 9)
             {
-                return $"0{phoneNumber}";
+                return "0" + phoneNumber;
             }
             if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
             {
                 return phoneNumber;
             }
-            if (phoneNumber.StartsWith("233") && phoneNumber.Length == 12)
+            if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
             {
-                return $"0{phoneNumber.Substring(3)}";
+                return "0" + phoneNumber.Substring(COUNTRY_CODE.Length);
             }
-            if (phoneNumber.StartsWith("+233") && phoneNumber.Length == 13)
+            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
             {
-                return $"0{phoneNumber.Substring(4)}";
+                return "0" + phoneNumber.Substring(COUNTRY_CODE.Length + 1);
             }
-            if (phoneNumber.StartsWith("00233") && phoneNumber.Length == 14)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 11 + COUNTRY_CODE.Length)
             {
-                return $"0{phoneNumber.Substring(5)}";
+                return "0" + phoneNumber.Substring(COUNTRY_CODE.Length + 2);
             }
             if (returnIfInvalid)
             {
                 return phoneNumber;
             }
-            else
-            {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
-            }
-
+            throw new WarningException("Invalid Number: " + phoneNumber);
         }
 
         public static string FormatNumber9Digits(string phoneNumber)
         {
             phoneNumber = phoneNumber.Trim();
-            if (phoneNumber == null ||
-                phoneNumber.Trim() == "" ||
-                !Regex.IsMatch(phoneNumber, @"^\d+$"))
+            if (phoneNumber == null || phoneNumber.Trim() == "" || !Regex.IsMatch(phoneNumber, "^\\d+$"))
             {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
-
-            //init variable to hold the formatted phone number
-            if (phoneNumber.StartsWith("00233") && phoneNumber.Length == 14)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
             {
-                phoneNumber = phoneNumber.Substring(5);
+                phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length + 2);
             }
-            else if (phoneNumber.StartsWith("+233") && phoneNumber.Length == 13)
+            else if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
             {
-                phoneNumber = phoneNumber.Substring(4);
+                phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length + 1);
             }
-            else if (phoneNumber.StartsWith("233") && phoneNumber.Length == 12)
+            else if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
             {
-                phoneNumber = phoneNumber.Substring(3);
+                phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length);
             }
             else if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
             {
                 phoneNumber = phoneNumber.Substring(1);
             }
-
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
             if (phoneNumber.Length != 9)
             {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
             return phoneNumber;
         }
@@ -104,41 +90,70 @@ namespace helpers
         public static string FormatNumber12Digits(string phoneNumber)
         {
             phoneNumber = phoneNumber.Trim();
-            if (phoneNumber == null ||
-                phoneNumber.Trim() == "" ||
-                !Regex.IsMatch(phoneNumber, @"^\d+$"))
+            if (phoneNumber == null || phoneNumber.Trim() == "" || !Regex.IsMatch(phoneNumber, "^\\d+$"))
             {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
-
-
-            if (phoneNumber.StartsWith("+233") && phoneNumber.Length == 13)
+            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(1);
             }
-            if (phoneNumber.StartsWith("00233") && phoneNumber.Length == 14)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 11 + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(2);
             }
             if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
             {
-                phoneNumber = "233" + phoneNumber.Substring(1);
+                phoneNumber = COUNTRY_CODE + phoneNumber.Substring(1);
             }
             if (phoneNumber.Length == 9)
             {
-                phoneNumber = "233" + phoneNumber;
+                phoneNumber = COUNTRY_CODE + phoneNumber;
             }
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.Length != 12)
+            if (phoneNumber.Length != 9 + COUNTRY_CODE.Length)
             {
-                throw new WarningException($"Invalid Number: {phoneNumber}");
+                throw new WarningException("Invalid Number: " + phoneNumber);
             }
             return phoneNumber;
         }
 
+        public static bool IsValidMsisdn(string phoneNumber)
+        {
+            phoneNumber = phoneNumber.Trim();
+            if (phoneNumber == null || phoneNumber.Trim() == "" || !Regex.IsMatch(phoneNumber, "^\\d+$"))
+            {
+                throw new WarningException("Invalid Number: " + phoneNumber);
+            }
+            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
+            {
+                phoneNumber = phoneNumber.Substring(1);
+            }
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 11 + COUNTRY_CODE.Length)
+            {
+                phoneNumber = phoneNumber.Substring(2);
+            }
+            if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
+            {
+                phoneNumber = COUNTRY_CODE + phoneNumber.Substring(1);
+            }
+            if (phoneNumber.Length == 9)
+            {
+                phoneNumber = COUNTRY_CODE + phoneNumber;
+            }
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                return false;
+            }
+            if (phoneNumber.Length != 9 + COUNTRY_CODE.Length)
+            {
+                return false;
+            }
+            return true;
+        }
         public static string Encrypt(string clearText, string EncryptionKey)
         {
             byte[] clearBytes = Encoding.Unicode.GetBytes(clearText);
@@ -181,7 +196,7 @@ namespace helpers
             }
             return cipherText;
         }
-
+          
         public static string Stringify(this object obj, JsonSerializerSettings settings = null) => JsonConvert.SerializeObject(obj, settings);
         public static T ParseObject<T>(this string obj) => JsonConvert.DeserializeObject<T>(obj);
 
@@ -228,47 +243,7 @@ namespace helpers
                 return false;
             }
         }
-
-        public static bool IsValidMsisdn(string phoneNumber)
-        {
-            phoneNumber = phoneNumber.Trim();
-            //check for valid phone number
-            if (phoneNumber == null ||
-                phoneNumber.Trim() == "" ||
-                !Regex.IsMatch(phoneNumber, @"^\d+$"))
-            {
-                return false;
-            }
-
-            //init variable to hold the formatted phone number
-
-            if (phoneNumber.StartsWith("+233") && phoneNumber.Length == 13)
-            {
-                phoneNumber = phoneNumber.Substring(1);
-            }
-            if (phoneNumber.StartsWith("00233") && phoneNumber.Length == 14)
-            {
-                phoneNumber = phoneNumber.Substring(2);
-            }
-            if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
-            {
-                phoneNumber = "233" + phoneNumber.Substring(1);
-            }
-            if (phoneNumber.Length == 9)
-            {
-                phoneNumber = "233" + phoneNumber;
-            }
-            if (string.IsNullOrWhiteSpace(phoneNumber))
-            {
-                return false;
-            }
-            if (phoneNumber.Length != 12)
-            {
-                return false;
-            }
-            return true;
-        }
-
+         
         public static string GenerateRandom(int length)
         {
             Random generator = new Random();

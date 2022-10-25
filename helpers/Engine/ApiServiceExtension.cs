@@ -20,6 +20,8 @@ namespace helpers.Engine
             List<Connection> databaseConnections = new List<Connection>();
             config.Bind("Databases", databaseConnections);
 
+            Utility.COUNTRY_CODE = config.GetValue("Utility:CountryCode", "233");
+
             string logPath = config.GetValue("LOG_DIR", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"));
             Log.Logger = new LoggerConfiguration()
                             .MinimumLevel.Information()
