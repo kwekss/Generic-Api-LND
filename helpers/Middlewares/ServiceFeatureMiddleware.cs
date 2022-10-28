@@ -13,6 +13,7 @@ using Serilog;
 using Serilog.Context;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -58,7 +59,7 @@ namespace helpers.Middlewares
         }
 
         public async Task InvokeAsync(HttpContext context)
-        { 
+        {
             try
             {
                 LogContext.PushProperty("CorrelationId", GetCorrelationId(context));
@@ -98,7 +99,25 @@ namespace helpers.Middlewares
                     return;
                 }
 
+
+
                 var endpoint = new Endpoint(path);
+                if (context?.Request?.Form?.Files?.Any() ?? false)
+                {
+                    endpoint.Files = context.Request.Form.Files.Select((f) =>
+                    {
+                        byte[] bytes;
+                        using (var ms = new MemoryStream())
+                        {
+                            f.CopyToAsync(ms).Wait();
+                            bytes = ms.ToArray();
+                        }
+                        return new FileContent {Name = f.Name, Content = bytes, FileName = f.FileName, FileSize = f.Length, MimeType = f.ContentType };
+                    }).ToList();
+
+                }
+
+
                 var buffer = new byte[Convert.ToInt32(context.Request.ContentLength)];
                 await context.Request.Body.ReadAsync(buffer, 0, buffer.Length);
                 endpoint.RequestBody = buffer;
@@ -111,12 +130,11 @@ namespace helpers.Middlewares
 
                 if (endpoint.RequestBody.Length > 0)
                 {
-                    _messengerHub.Publish(new LogInfo("info", $"Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}"));
                     Log.Information($"Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}");
                 }
 
                 if (context.Request.QueryString.HasValue)
-                    _messengerHub.Publish(new LogInfo("info", $"Request Query: {context.Request.QueryString.ToUriComponent()}"));
+                    Log.Information($"Request Query: {context.Request.QueryString.ToUriComponent()}");
 
                 var service = _serviceProvider.GetServices<BaseServiceFeature>()
                     .FirstOrDefault(_ => _.GetType().GetCustomAttributes().Any(_ => _.GetType() == typeof(FeatureAttribute)

@@ -1,4 +1,5 @@
-﻿using models;
+﻿using Microsoft.AspNetCore.Http;
+using models;
 
 namespace TestService.Models
 {
@@ -9,6 +10,12 @@ namespace TestService.Models
         public int Id { get; set; }
         
         public DataModel Data { get; set; }
+    }
+    public class TestUploadModel
+    { 
+        public string Test { get; set; }
+        
+        public IFormFile Image { get; set; }
     }
     public class DataModel
     {

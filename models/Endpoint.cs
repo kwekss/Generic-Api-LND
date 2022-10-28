@@ -22,5 +22,15 @@ namespace models
         public string RequiredFullname { get => $"{Service}Service.Features"; }
         private List<string> _path { get; }
         public byte[] RequestBody { get; set; }
+        public List<FileContent> Files { get; set; }
+    }
+
+    public class FileContent
+    {
+        public byte[] Content { get; set; }
+        public string Name { get; set; }
+        public string FileName { get; set; }
+        public string MimeType { get; set; }
+        public long FileSize { get; set; }
     }
 }

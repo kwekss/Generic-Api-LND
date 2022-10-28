@@ -1,6 +1,7 @@
 ﻿using helpers;
 using Microsoft.Extensions.DependencyInjection;
 using TestService.Features;
+using TestService.Providers;
 
 namespace TestService
 {
@@ -9,7 +10,9 @@ namespace TestService
         public static IServiceCollection AddTestService(this IServiceCollection services)
         {
             services
-                .AddSingleton<BaseServiceFeature, TestFeature>();
+                .AddSingleton<IUploadProvider, UploadProvider>()
+                .AddSingleton<BaseServiceFeature, TestFeature>()
+                .AddSingleton<BaseServiceFeature, UploadDocument>();
 
             return services;
         }
