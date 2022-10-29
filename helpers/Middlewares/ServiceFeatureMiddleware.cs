@@ -102,7 +102,7 @@ namespace helpers.Middlewares
 
 
                 var endpoint = new Endpoint(path);
-                if (context.Request.ContentType.Contains("multipart/form-data") &&  (context.Request?.Form?.Files?.Any()??false))
+                if (context.Request.Method.ToLower() != "get" && context.Request.ContentType.Contains("multipart/form-data") &&  (context.Request?.Form?.Files?.Any()??false))
                 {
                     endpoint.Files = context.Request.Form.Files.Select((f) =>
                     {
@@ -288,19 +288,6 @@ namespace helpers.Middlewares
             typeof(BaseServiceFeature).GetProperty("Service").SetValue(service, endpoint.Service, null);
             typeof(BaseServiceFeature).GetProperty("FeatureName").SetValue(service, endpoint.Feature, null);
             typeof(BaseServiceFeature).GetProperty("Context").SetValue(service, context, null);
-        }
-
-        public MessageSubscriptionToken StartLogger(StringBuilder logs, Guid requestId)
-        {
-            var token = _messengerHub.Subscribe<LogInfo>(x =>
-            {
-                for (int i = 0; i < x.Messages.Count; i++)
-                {
-                    logs.AppendLine($"[{x.Type.ToUpper()}] [{x.Timestamp:yyyy-MM-dd hh:mm:ss tt}] [{requestId}] {x.Messages[i]}");
-                }
-            });
-
-            return token;
         }
 
         private async Task Respond(HttpContext context, string message)
