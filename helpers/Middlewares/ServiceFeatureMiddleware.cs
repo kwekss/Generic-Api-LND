@@ -102,7 +102,7 @@ namespace helpers.Middlewares
 
 
                 var endpoint = new Endpoint(path);
-                if (context.Request.Method.ToLower() != "get" && context.Request.ContentType.Contains("multipart/form-data") &&  (context.Request?.Form?.Files?.Any()??false))
+                if (context.Request.Method.ToLower() != "get" && context.Request.ContentType !=null && context.Request.ContentType.Contains("multipart/form-data") &&  (context.Request?.Form?.Files?.Any()??false))
                 {
                     endpoint.Files = context.Request.Form.Files.Select((f) =>
                     {
