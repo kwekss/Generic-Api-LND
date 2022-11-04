@@ -2,7 +2,9 @@
 using helpers.Database.Extensions;
 using helpers.Database.Models;
 using Npgsql;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -48,6 +50,10 @@ namespace helpers.Database
             });
 
             return t;
+        }
+        public async Task Execute(string procedureName, List<StoreProcedureParameter> parameters, Action<IDataReader> callback = null)
+        { 
+            await _storedProcedureExecutor.ExecuteStoredProcedure(_defaultConnection, $"\"{procedureName}\"", parameters, callback);
         }
         public async Task<T> ExecuteRaw<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters)
         {
