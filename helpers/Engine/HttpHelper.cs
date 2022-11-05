@@ -17,19 +17,23 @@ using System.Xml;
 namespace helpers.Engine
 {
     public class HttpHelper : IHttpHelper
-    {
-        private readonly IMessengerHub _messengerHub;
+    { 
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly JsonSerializerSettings _serializerSettings;
 
-        public HttpHelper(IMessengerHub messengerHub, IHttpClientFactory httpClientFactory)
-        {
-            _messengerHub = messengerHub;
+        public HttpHelper(IHttpClientFactory httpClientFactory)
+        { 
             _httpClientFactory = httpClientFactory;
             _serializerSettings = new JsonSerializerSettings
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
+        }
+
+        public HttpClientBuilder ClientBuilder(string clientName = null)
+        {
+            var client = string.IsNullOrWhiteSpace(clientName) ? _httpClientFactory.CreateClient() : _httpClientFactory.CreateClient(clientName);
+            return new HttpClientBuilder(client);
         }
         public async Task<T> Post<T>(string url, object payload, List<(string key, string value)> headers = null, bool returnRaw = false)
         {
@@ -37,11 +41,11 @@ namespace helpers.Engine
             var client = _httpClientFactory.CreateClient();
 
             string requestPayload = payload.Stringify();
-             
+
             Log.Information($"HTTP Request Path: {url}");
             Log.Information($"HTTP Request Payload: {requestPayload}");
             Log.Information($"HTTP Request Headers: {headers.Stringify(_serializerSettings)}");
-             
+
 
             if (headers != null && headers.Any())
             {
@@ -57,13 +61,13 @@ namespace helpers.Engine
             {
                 string contents = await response.Content.ReadAsStringAsync();
                 Log.Information($"HTTP Response Payload: {contents}");
-                 
+
                 if (returnRaw) return contents as dynamic;
 
                 return contents.ParseObject<T>();
             }
 
-            Log.Information($"HTTP Request End"); 
+            Log.Information($"HTTP Request End");
 
             return default(T);
         }
@@ -72,11 +76,11 @@ namespace helpers.Engine
         {
 
             HttpClient client = _httpClientFactory.CreateClient();
-             
+
             Log.Information($"HTTP Request Path: {url}");
             Log.Information($"HTTP Request Payload Lenght: {payload.Count()}");
             Log.Information($"HTTP Request Headers: {JsonConvert.SerializeObject(headers)}");
-             
+
 
 
             if (headers != null && headers.Any())
@@ -94,13 +98,13 @@ namespace helpers.Engine
             {
                 string contents = await response.Content.ReadAsStringAsync();
                 Log.Information($"HTTP Response Payload: {contents}");
-                 
+
                 if (returnRaw) return contents as dynamic;
 
                 return contents.ParseObject<T>();
             }
 
-            Log.Information($"HTTP Request End"); 
+            Log.Information($"HTTP Request End");
 
             return default(T);
 
@@ -110,14 +114,14 @@ namespace helpers.Engine
         {
 
             HttpClient client = _httpClientFactory.CreateClient();
-            var xml_string_payload = payload.OuterXml; 
+            var xml_string_payload = payload.OuterXml;
             xml_string_payload = Regex.Replace(xml_string_payload, ">\\s+", ">");
             xml_string_payload = Regex.Replace(xml_string_payload, "\\s+<", "<");
-             
+
             Log.Information($"HTTP Request Path: {url}");
             Log.Information($"HTTP Request Payload: {xml_string_payload}");
             Log.Information($"HTTP Request Headers: {headers.Stringify()}");
-             
+
 
             if (headers != null && headers.Any())
             {
@@ -133,14 +137,14 @@ namespace helpers.Engine
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 string contents = await response.Content.ReadAsStringAsync();
-                Log.Information($"Response Payload: {contents}"); 
+                Log.Information($"Response Payload: {contents}");
 
                 if (returnRaw) return contents as dynamic;
 
                 return contents.ParseObject<T>();
             }
 
-            Log.Information($"Request End"); 
+            Log.Information($"Request End");
 
             return default(T);
 
@@ -178,7 +182,7 @@ namespace helpers.Engine
             {
                 string contents = await response.Content.ReadAsStringAsync();
                 Log.Information($"Response Payload: {contents}");
-                 
+
                 if (returnRaw) return contents as dynamic;
 
                 return contents.ParseObject<T>();
