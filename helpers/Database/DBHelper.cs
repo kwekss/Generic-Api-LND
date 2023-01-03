@@ -52,7 +52,7 @@ namespace helpers.Database
             return t;
         }
         public async Task Execute(string procedureName, List<StoreProcedureParameter> parameters, Action<IDataReader> callback = null)
-        { 
+        {
             await _storedProcedureExecutor.ExecuteStoredProcedure(_defaultConnection, $"\"{procedureName}\"", parameters, callback);
         }
         public async Task<T> ExecuteRaw<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters)

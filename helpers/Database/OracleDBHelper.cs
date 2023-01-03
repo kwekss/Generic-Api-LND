@@ -1,6 +1,7 @@
 ﻿using helpers.Database.Executors;
 using helpers.Database.Extensions;
 using helpers.Database.Models;
+using Oracle.ManagedDataAccess.Client;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -48,6 +49,13 @@ namespace helpers.Database
         public async Task ExecuteNonQuery(Connection connection, string procedureName, List<OracleStoreProcedureParameter> parameters)
         {
             await _oracleExecutor.ExecuteStoredProcedure(connection, $"{procedureName}", parameters);
+        }
+
+        public async Task<OracleParameterCollection> ExecuteNonQueryOut(Connection connection, string procedureName, List<OracleStoreProcedureParameter> parameters)
+        {
+            OracleParameterCollection opc = null;
+            await _oracleExecutor.ExecuteNonQueryStoredProcedure(connection, $"{procedureName}", parameters, collection => opc = collection);
+            return opc;
         }
 
         public async Task<List<T>> QueryFetch<T>(Connection connection, string query, List<OracleStoreProcedureParameter> parameters = null)

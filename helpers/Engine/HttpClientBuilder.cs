@@ -15,7 +15,7 @@ namespace helpers.Engine
         private readonly HttpClient _client;
         private Guid _id { get; set; }
         private string _responsePayload { get; set; }
-        private int _statusCode{ get; set; }
+        private int _statusCode { get; set; }
         private string _url { get; set; }
         private string _method { get; set; }
         private StringContent _payload { get; set; }
@@ -56,9 +56,9 @@ namespace helpers.Engine
         }
         public async Task<HttpClientBuilder> Execute()
         {
-            Log.Information($"HTTP Request Path [{_id}]: {_url}"); 
+            Log.Information($"HTTP Request Path [{_id}]: {_url}");
             Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}");
-            
+
             if (_headers != null && _headers.Any())
             {
                 for (int i = 0; i < _headers.Count; i++)
@@ -66,18 +66,18 @@ namespace helpers.Engine
                     _client.DefaultRequestHeaders.Add(_headers[i].key, _headers[i].value);
                 }
             }
-            
+
             HttpResponseMessage response = null;
 
-            if(_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
-            if(_method.ToLower() == "put") response = await _client.PutAsync(_url, _payload);
-            if(_method.ToLower() == "delete") response = await _client.DeleteAsync(_url);
-            if(_method.ToLower() == "patch") response = await _client.PatchAsync(_url, _payload);
-            if(_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
-            
+            if (_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
+            if (_method.ToLower() == "put") response = await _client.PutAsync(_url, _payload);
+            if (_method.ToLower() == "delete") response = await _client.DeleteAsync(_url);
+            if (_method.ToLower() == "patch") response = await _client.PatchAsync(_url, _payload);
+            if (_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
+
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
-            Log.Information($"Response Payload: {_responsePayload}");
+            Log.Information($"Response Payload [{_id}]: {_responsePayload}");
 
             return this;
         }
@@ -85,6 +85,6 @@ namespace helpers.Engine
         public int StatusCode() => _statusCode;
         public override string ToString() => _responsePayload;
         public T ToObject<T>() => _responsePayload.ParseObject<T>();
-         
+
     }
 }

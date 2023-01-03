@@ -1,5 +1,4 @@
 ﻿using helpers.Interfaces;
-using helpers.Notifications;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -17,12 +16,12 @@ using System.Xml;
 namespace helpers.Engine
 {
     public class HttpHelper : IHttpHelper
-    { 
+    {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly JsonSerializerSettings _serializerSettings;
 
         public HttpHelper(IHttpClientFactory httpClientFactory)
-        { 
+        {
             _httpClientFactory = httpClientFactory;
             _serializerSettings = new JsonSerializerSettings
             {

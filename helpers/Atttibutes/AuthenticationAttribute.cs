@@ -1,6 +1,7 @@
 ﻿using helpers.Exceptions;
 using helpers.Interfaces;
 using helpers.Notifications;
+using helpers.Session;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using models;
@@ -17,7 +18,7 @@ namespace helpers.Atttibutes
     {
         public enum AuthenticationType
         {
-            Integrator
+            Integrator, InternalBearerToken
         }
         public AuthenticationType Schema { get; set; }
         public string RequestTimeKey { get; set; }
@@ -30,8 +31,27 @@ namespace helpers.Atttibutes
         {
             if (Schema == AuthenticationType.Integrator)
                 ValidateIntegrator(context, services, endpoint);
+
+            if (Schema == AuthenticationType.InternalBearerToken)
+                AuthenticateInternalBearerToken(context, services, endpoint);
         }
 
+        private void AuthenticateInternalBearerToken(HttpContext context, IServiceProvider services, Endpoint endpoint)
+        {
+            var _sessionManager = services.GetService<ISessionManager>();
+            var session = _sessionManager.GetCurrentUserSession().Result;
+
+            if (session == null) throw new ApiRequestStatusException(401, "Request authorization failed. Please check and try again");
+
+            if (string.IsNullOrWhiteSpace(session.Data)) throw new ApiRequestStatusException(401, "Request authorization failed. Please check and try again");
+
+            var sessionData = session.Data.ParseObject<AuthorizedUser>();
+            if (sessionData.TokenExpiry < DateTime.Now)
+            {
+                _sessionManager.DeleteSessionData(session.SessionKey).Wait();
+                throw new ApiRequestStatusException(401, "Authorization token expired. Kindly login to continue");
+            }
+        }
         private void ValidateIntegrator(HttpContext context, IServiceProvider services, Endpoint endpoint)
         {
             var authorizationString = context.Request.Headers["Authorization"].ToString();
@@ -66,8 +86,8 @@ namespace helpers.Atttibutes
             return JsonConvert.DeserializeObject(data);
         }
     }
-    
-    
+
+
 
 
 }

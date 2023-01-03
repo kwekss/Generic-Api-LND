@@ -43,10 +43,10 @@ namespace TestService.Features
         public async Task<ApiResponse> Entry([FromFormBody] FileContent image)
         {
             var uploadResponse = await _uploadProvider.Upload(image, _upload_doc_config);
-            
+
             if (!uploadResponse.Success)
                 return new ApiResponse { Success = false, ResponseMessage = string.IsNullOrWhiteSpace(uploadResponse.Message) ? "Upload failed. Please try again later" : uploadResponse.Message };
-            
+
             return new ApiResponse { Success = true, Data = uploadResponse };
         }
 

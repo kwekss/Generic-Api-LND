@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using static helpers.Atttibutes.AuthenticationAttribute;
 
 namespace helpers.Engine
 {
@@ -44,6 +45,7 @@ namespace helpers.Engine
             JObject components = new JObject();
 
             components["schemas"] = new JObject();
+            components["securitySchemes"] = new JObject();
 
             var service = _serviceProvider.GetServices<BaseServiceFeature>()
                    .Where(_ => _.GetType().GetCustomAttributes().Any(_ => _.GetType() == typeof(FeatureAttribute)
@@ -62,21 +64,28 @@ namespace helpers.Engine
                 var route = serviceType.GetMethods();
                 var entries = route.Where(x => x.GetCustomAttributes(true).Any(_ => _.GetType() == typeof(EntryAttribute))).ToList();
 
+                var bearerAuths = entries.Any(x => (x.GetCustomAttribute(typeof(AuthenticationAttribute)) as AuthenticationAttribute)?.Schema == AuthenticationType.InternalBearerToken);
+                if (bearerAuths)
+                    components["securitySchemes"]["bearerAuth"] = JObject.FromObject(new { required= true, type = "http", name = "Authorization", scheme = "bearer", @in = "header" });
+
                 for (int j = 0; j < entries.Count; j++)
                 {
                     var path = $"/{serviceName}/{featureAttr.Name}";
                     var entryType = entries[j];
-                    var entryAttr = (EntryAttribute)entryType.GetCustomAttribute(typeof(EntryAttribute));
+                    var entryAttr = entryType.GetCustomAttribute(typeof(EntryAttribute)) as EntryAttribute;
+                    var apiDocAttr = entryType.GetCustomAttribute(typeof(ApiDocAttribute)) as ApiDocAttribute;
 
                     var apiPathInfo = new ApiInfoPath
                     {
                         tags = new List<string> { },
                         summary = $"{docsAttr?.Description ?? featureAttr.Name}",
-                        description = "",
+                        description = apiDocAttr?.Description,
                         operationId = featureAttr.Name,
                         parameters = new List<ApiInfoPathParameter> { },
-                        responses = new JObject()
-                    };
+                        responses = new JObject(),
+                        security = new JObject()
+                    }; 
+
                     var resp200 = new ApiInfoPathResponse { description = "", content = new JObject() };
 
                     var responseObject = new
@@ -107,6 +116,7 @@ namespace helpers.Engine
                     }
                     components["schemas"][response.PropertyType.Name] = JObject.FromObject(schema);
 
+
                     var p = new JObject();
                     p["$ref"] = $"#/components/schemas/{response.PropertyType.Name}";
 
@@ -114,13 +124,13 @@ namespace helpers.Engine
                     apiPathInfo.responses["200"] = JObject.FromObject(resp200);
 
                     var methods = entryAttr.Method.Split("/").ToList();
-                    path = $"{path}{(!string.IsNullOrWhiteSpace(entryAttr.Route)?$"/{entryAttr.Route.Trim('/')}" :"")}";
+                    path = $"{path}{(!string.IsNullOrWhiteSpace(entryAttr.Route) ? $"/{entryAttr.Route.Trim('/')}" : "")}";
                     paths[path] = new JObject();
 
                     var entryParameters = entryType.GetParameters()?.ToList();
 
-                    var parameters = GetParameters(entryParameters, path);
-                    apiPathInfo.parameters = parameters;
+                    var parameters = GetParameters(entryType, entryParameters, path);
+                    apiPathInfo.parameters.AddRange(parameters);
 
                     var requestPayload = entryParameters.Where(x => x.GetCustomAttribute(typeof(FromJsonBodyAttribute)) != null)?.ToList();
                     if (requestPayload != null && requestPayload.Any())
@@ -186,12 +196,13 @@ namespace helpers.Engine
 
             var requestObject = new
             {
-                schema = JObject.FromObject(new {
+                schema = JObject.FromObject(new
+                {
                     type = "object",
                     properties = new JObject(),
                     required = new List<string> { }
                 })
-                
+
             };
 
             for (int i = 0; i < requestPayload.Count; i++)
@@ -271,7 +282,7 @@ namespace helpers.Engine
             components["schemas"][propertyInfo.PropertyType.Name] = JObject.FromObject(schema);
         }
 
-        private List<ApiInfoPathParameter> GetParameters(List<ParameterInfo> parameterInfos, string path)
+        private List<ApiInfoPathParameter> GetParameters(MethodInfo entryType, List<ParameterInfo> parameterInfos, string path)
         {
             var payloads = new List<ApiInfoPathParameter>();
             for (int i = 0; i < parameterInfos.Count; i++)
@@ -318,6 +329,19 @@ namespace helpers.Engine
 
                 }
 
+            }
+
+            var authAttr = entryType.GetCustomAttribute(typeof(AuthenticationAttribute)) as AuthenticationAttribute;
+            if (authAttr?.Schema == AuthenticationType.InternalBearerToken)
+            { 
+                payloads.Add(new ApiInfoPathParameter
+                {
+                    description = "Bearer Token",
+                    @in = "header",
+                    name = "Authorization",
+                    required = true,
+                    schema = new ApiInfoPathParameterSchema { type = "string", @default = $"Bearer {Guid.NewGuid()}" }
+                });
             }
 
             return payloads;

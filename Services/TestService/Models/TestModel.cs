@@ -8,13 +8,13 @@ namespace TestService.Models
         public string Prop { get; set; }
         [ApiDoc(Description = "Some description for data object", Default = 1234)]
         public int Id { get; set; }
-        
+
         public DataModel Data { get; set; }
     }
     public class TestUploadModel
-    { 
+    {
         public string Test { get; set; }
-        
+
         public IFormFile Image { get; set; }
     }
     public class DataModel

@@ -62,6 +62,42 @@ namespace helpers.Database.Executors
             }
         }
 
+
+
+        public async Task ExecuteNonQueryStoredProcedure(Connection _connection, string procedure_name, List<OracleStoreProcedureParameter> parameters, Action<OracleParameterCollection> callback = null)
+        {
+            using (OracleConnection connection = await PrepareConnection(_connection.ConnectionString))
+            {
+                try
+                {
+                    OracleCommand cmd = new OracleCommand($"{_connection.Schema}.{procedure_name}", connection);
+                    cmd.BindByName = true;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    if (parameters != null && parameters.Any())
+                    {
+                        foreach (OracleStoreProcedureParameter parameter in parameters)
+                        {
+                            cmd.Parameters.Add(parameter.Name, parameter.Type, parameter.Size).Value = parameter.Value;
+                            cmd.Parameters[parameter.Name].Direction = parameter.Direction;
+                        }
+                    }
+
+                    var reader = await cmd.ExecuteNonQueryAsync();
+                    if (callback != null) callback.Invoke(cmd.Parameters);
+
+
+                    CloseConnection(connection, cmd);
+                }
+                catch (Exception)
+                {
+                    CloseConnectionOnly(connection);
+                    throw;
+                }
+
+            }
+        }
+
         public async Task ExecuteStoredProcedure(Connection _connection, string procedure_name, List<OracleStoreProcedureParameter> parameters, Action<IDataReader> callback = null)
         {
             using (OracleConnection connection = await PrepareConnection(_connection.ConnectionString))

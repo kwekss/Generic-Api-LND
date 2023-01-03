@@ -27,12 +27,13 @@ namespace helpers.Session
         {
             var authorizationString = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString();
             if (string.IsNullOrWhiteSpace(authorizationString)) return null;
+            if (!authorizationString.StartsWith("Bearer")) return null;
 
             authorizationString = authorizationString.Trim();
             string[] authorizationArray = authorizationString.Split(Convert.ToChar(" "));
 
             if (!authorizationArray.Any()) return null;
-            if (authorizationArray.Length > 2) return null;
+            if (authorizationArray.Length != 2) return null;
             var sessionKey = authorizationArray[1].Trim();
             var collection = _mongoDBHelper.GetCollection<AppUserSession>("ApplicationUserSession", sessionKey);
 
@@ -50,12 +51,13 @@ namespace helpers.Session
         {
             var authorizationString = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString();
             if (string.IsNullOrWhiteSpace(authorizationString)) return null;
+            if (!authorizationString.StartsWith("Bearer")) return null;
 
-            authorizationString = authorizationString.Trim();
+            authorizationString = authorizationString?.Trim();
             string[] authorizationArray = authorizationString.Split(Convert.ToChar(" "));
 
             if (!authorizationArray.Any()) return null;
-            if (authorizationArray.Length > 2) return null;
+            if (authorizationArray.Length != 2) return null;
             var sessionKey = authorizationArray[1].Trim();
             var collection = _mongoDBHelper.GetCollection<AppUserSession>("ApplicationUserSession", sessionKey);
 
@@ -92,7 +94,7 @@ namespace helpers.Session
         private async Task AutoDeleteSessionData()
         {
             var filter = Builders<AppUserSession>.Filter;
-            var sessionFilter = filter.Lt(x => x.DateModified.AddHours(24), DateTime.Now);
+            var sessionFilter = filter.Lt(x => x.DateModified.AddHours(6), DateTime.Now);
             for (int i = 0; i <= 20; i++)
             {
                 var collection = _mongoDBHelper.GetCollection<AppUserSession>($"ApplicationUserSession_{i}");

@@ -21,14 +21,14 @@ namespace TestService.Features
         [Entry(Method = "POST", Route = "id/{id}")]
         public async Task<ApiResponse> Entry([FromJsonBody] TestModel payload, int id)
         {
-             
-            var http = await _httpHelper.ClientBuilder().Url("https://jsonplaceholder.typicode.com/todos/1","GET").Execute();
+
+            var http = await _httpHelper.ClientBuilder().Url("https://jsonplaceholder.typicode.com/todos/1", "GET").Execute();
 
             return new ApiResponse
             {
                 Success = true,
                 ResponseMessage = $"I am {FeatureName} from {Service} and id: {payload.Prop}",
-                Data = new { payload, apiResponse = http.ToObject<dynamic>()}
+                Data = new { payload, apiResponse = http.ToObject<dynamic>() }
             };
         }
 

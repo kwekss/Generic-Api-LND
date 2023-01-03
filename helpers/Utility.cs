@@ -196,7 +196,7 @@ namespace helpers
             }
             return cipherText;
         }
-          
+
         public static string Stringify(this object obj, JsonSerializerSettings settings = null) => JsonConvert.SerializeObject(obj, settings);
         public static T ParseObject<T>(this string obj) => JsonConvert.DeserializeObject<T>(obj);
 
@@ -243,7 +243,7 @@ namespace helpers
                 return false;
             }
         }
-         
+
         public static string GenerateRandom(int length)
         {
             Random generator = new Random();

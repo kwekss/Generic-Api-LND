@@ -102,7 +102,7 @@ namespace helpers.Middlewares
 
 
                 var endpoint = new Endpoint(path);
-                if (context.Request.Method.ToLower() != "get" && context.Request.ContentType !=null && context.Request.ContentType.Contains("multipart/form-data") &&  (context.Request?.Form?.Files?.Any()??false))
+                if (context.Request.Method.ToLower() != "get" && context.Request.ContentType != null && context.Request.ContentType.Contains("multipart/form-data") && (context.Request?.Form?.Files?.Any() ?? false))
                 {
                     endpoint.Files = context.Request.Form.Files.Select((f) =>
                     {
@@ -112,7 +112,7 @@ namespace helpers.Middlewares
                             f.CopyToAsync(ms).Wait();
                             bytes = ms.ToArray();
                         }
-                        return new FileContent {Name = f.Name, Content = bytes, FileName = f.FileName, FileSize = f.Length, MimeType = f.ContentType };
+                        return new FileContent { Name = f.Name, Content = bytes, FileName = f.FileName, FileSize = f.Length, MimeType = f.ContentType };
                     }).ToList();
 
                 }
@@ -196,9 +196,17 @@ namespace helpers.Middlewares
                 return;
             }
             catch (ParameterException e)
-            {
-
+            { 
                 await Respond(context, e.Message);
+                return;
+            }
+            catch (ApiRequestStatusException e)
+            { 
+                var data = e.Message.Split("||");
+                var statusCode = Convert.ToInt32(data[0]);
+                Log.Information($"Response: {statusCode} => {data[1]}");
+
+                await Respond(context, data[1], statusCode);
                 return;
             }
             catch (CustomException e)
@@ -290,9 +298,10 @@ namespace helpers.Middlewares
             typeof(BaseServiceFeature).GetProperty("Context").SetValue(service, context, null);
         }
 
-        private async Task Respond(HttpContext context, string message)
+        private async Task Respond(HttpContext context, string message, int statusCode = 200)
         {
             context.Response.Headers["content-type"] = "application/json";
+            context.Response.StatusCode = statusCode;
             if (_api_type == "USSD_API")
             {
                 var response = new UssdApiResponse { ResponseBody = message };
@@ -302,8 +311,7 @@ namespace helpers.Middlewares
             {
                 var response = new ApiResponse { ResponseMessage = message };
                 await context.Response.WriteAsync(response.Stringify(_serializerSettings));
-            }
-
+            } 
         }
 
         private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, Endpoint endpoint, HttpContext httpContext, RouteRegex routeRegex)
