@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +8,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using System.Xml;
 
 namespace helpers.Engine
@@ -43,6 +46,24 @@ namespace helpers.Engine
         public HttpClientBuilder AddPayload(string payload, string contentType = "application/json")
         {
             _payload = new StringContent(payload, Encoding.UTF8, contentType);
+            return this;
+        }
+
+        public HttpClientBuilder AddPayload(object payload)
+        {
+            _payload = new StringContent(payload.Stringify(), Encoding.UTF8, "application/json");
+            return this;
+        }
+
+        public HttpClientBuilder AddQueryParams(object payload)
+        {
+            var payloadObject = (JObject)JsonConvert.DeserializeObject(payload.ToString());
+            List<JProperty> payloadObjectList = payloadObject.Children().Cast<JProperty>().ToList();
+            string requestPayload = string.Join("&", payloadObjectList.Select(jp => jp.Name + "=" + HttpUtility.UrlEncode(jp.Value.ToString())));
+            Log.Information($"Request Query: {requestPayload}");
+
+            _url = $"{_url}?{requestPayload}";
+
             return this;
         }
         public HttpClientBuilder AddPayload(XmlDocument payload, string contentType = "text/xml")

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection;
 
 namespace helpers.Database.Extensions
 {
@@ -25,23 +26,52 @@ namespace helpers.Database.Extensions
 
         }
 
-        public static List<T> toModel<T>(this IDataReader reader)
+        private static T ObjectFromDictionary<T>(Dictionary<string, dynamic> dict)
         {
-            var r = reader.Serialize();
-            string json = JsonConvert.SerializeObject(r, Formatting.Indented);
-            var parsers = new string[] { "\\", ": \"{", "}\"", "\"[{", "}]\"", "\"[", "]\"" };
-            var replacers = new string[] { "", ": {", "}", "[{", "}]", "[", "]" };
-
-            while (parsers.Any(json.Contains))
+            Type type = typeof(T);
+            T result = type is string ? default(T) : (T)Activator.CreateInstance(type);
+            var json_obj_start = new string[] { "{", "[" };
+            foreach (var item in dict)
             {
-                for (int i = 0; i < parsers.Length; i++)
+                var prop = type?.GetProperty(item.Key, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                if (prop == null) continue;
+                Type t = Nullable.GetUnderlyingType(prop?.PropertyType) ?? prop.PropertyType;
+                object? safeValue = item.Value;
+                try
                 {
-                    json = json.Replace(parsers[i], replacers[i]);
+                    if (safeValue is DBNull && t != typeof(string) && t != typeof(DateTime)) safeValue = Activator.CreateInstance(t);
+                    if (t == typeof(string))
+                    {
+                        safeValue = $"{safeValue}";
+                    }
+                    else if (safeValue is DBNull && t == typeof(DateTime))
+                    {
+                        safeValue = null;
+                    }
+                    else if (t != typeof(string) && json_obj_start.Any(x => $"{safeValue}".StartsWith(x)))
+                    {
+                        if (safeValue != null) safeValue = JsonConvert.DeserializeObject(item.Value, t);
+                    }
+                    else
+                    {
+                        if (safeValue != null) safeValue = Convert.ChangeType(safeValue, t);
+                    }
+                    prop?.SetValue(result, safeValue, null);
+
+                }
+                catch (Exception)
+                {
+                    throw;
                 }
             }
+            return result;
+        }
 
-
-            return JsonConvert.DeserializeObject<List<T>>(json);
+        public static List<T>? toModel<T>(this IDataReader reader)
+        {
+            var r = reader.Serialize();
+            var data = r?.Select(row => ObjectFromDictionary<T>(row))?.ToList();
+            return data;
         }
 
         public static IEnumerable<Dictionary<string, dynamic>> Serialize(this IDataReader reader)

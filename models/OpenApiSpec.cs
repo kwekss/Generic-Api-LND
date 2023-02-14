@@ -53,6 +53,7 @@ namespace models
         //public List<string> produces { get; set; }
         public List<ApiInfoPathParameter> parameters { get; set; }
         public dynamic responses { get; set; }
+        public dynamic security { get; set; }
         public ApiInfoPathRequestBody requestBody { get; set; }
     }
     public class ApiInfoPathParameter
