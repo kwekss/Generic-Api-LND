@@ -309,7 +309,8 @@ namespace helpers.Engine
                 }
                 else
                 {
-                    if (!parameterInfo.ParameterType.IsClass)
+                    var sysParamTypes = new string[] { "System.String" };
+                    if (!parameterInfo.ParameterType.IsClass || sysParamTypes.Contains(parameterInfo.ParameterType.FullName))
                     {
                         var source = findPayloadSource(parameterInfo, path);
                         var payload = new ApiInfoPathParameter

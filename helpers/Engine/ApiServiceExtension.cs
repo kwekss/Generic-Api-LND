@@ -28,9 +28,10 @@ namespace helpers.Engine
                             .WriteTo.Console()
                             .WriteTo.Map(evt => evt.Level, (level, wt) => wt.File(
                                 Path.Combine(logPath, $"{level}", $"{DateTime.UtcNow:yyyy-MM-dd}.log"),
-                                outputTemplate: "{Timestamp:yyyy-MM-dd hh:mm:ss tt} [{CorrelationId}] - {Message}{NewLine}{Exception}"
+                                outputTemplate: "{Timestamp:yyyy-MM-dd hh:mm:ss tt} [{CorrelationId}] - {AppLog}{NewLine}{Exception}"
                                 )
                             )
+                            .Enrich.With(new LogEnricher(config))
                             .Enrich.FromLogContext()
                             .CreateLogger();
 

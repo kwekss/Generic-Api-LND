@@ -25,7 +25,6 @@ namespace helpers.Engine
 
         public BackgroundRunner(IMessengerHub messengerHub, IConfiguration config, IServiceProvider services)
         {
-            AssemblyLoadContext.Default.Unloading += OnUnloadingEventHandler;
             _messengerHub = messengerHub;
 
             _delayTime = config.GetValue("BACKGROUND_SERVICE:LOOP_DELAY_SEC", 5);
@@ -38,6 +37,7 @@ namespace helpers.Engine
 
             if (isBackgrounRunnerEnabled)
             {
+                AssemblyLoadContext.Default.Unloading += OnUnloadingEventHandler;
                 Log.ForContext("CorrelationId", "BackgroundService").Information($"Background service was started");
                 _jobs = services.GetServices<IBackgroundJob>().ToList();
                 RunJobs(jobInstances, TimeSpan.FromSeconds(_delayTime), _cancelationTokensSource);
@@ -99,7 +99,7 @@ namespace helpers.Engine
 
         private void OnUnloadingEventHandler(AssemblyLoadContext obj)
         {
-            _messengerHub.Publish(new LogWriter("info", $"Background service was stopped on OnUnloadingEventHandler"));
+            Log.ForContext("CorrelationId", "BackgroundService").Information($"Background service was stopped on OnUnloadingEventHandler");
         }
     }
 }
