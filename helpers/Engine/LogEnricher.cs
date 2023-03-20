@@ -2,6 +2,8 @@
 using Serilog.Core;
 using Serilog.Events;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace helpers.Engine
@@ -9,10 +11,12 @@ namespace helpers.Engine
     public class LogEnricher : ILogEventEnricher
     {
         private readonly int _truncate_at;
+        private readonly List<string> _mask_patterns;
 
         public LogEnricher(IConfiguration config)
         {
             _truncate_at = config.GetValue("Utility:Logging:TRUNCATE_AT", 0);
+            _mask_patterns = config.GetSection("Utility:Logging:Masking").Get<List<string>>();
         }
 
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
@@ -36,6 +40,17 @@ namespace helpers.Engine
 
             };
 
+            if (_mask_patterns != null && _mask_patterns.Any() && !string.IsNullOrWhiteSpace(message))
+            {
+                for (int i = 0; i < _mask_patterns.Count; i++)
+                { 
+                    message = Regex.Replace(message, _mask_patterns[i], "$1***$2", RegexOptions.IgnoreCase);
+                }
+            }
+            //string invokeSpec = "\":{\"Account\":\"d\\\\adm\",\"password\":\"cWExZjEiMTM=\"},\"SqlServer\":{\"InstanceName\":\"\",\"MachineName\":\"MyMachine\",\"Port\":null}";
+            //var pattern = "(\\\"password\\\":(\\s*)?)\\\"[^\\\"]*(\\\")";
+            //var replaced = Regex.Replace(invokeSpec, pattern, "$1***$2", RegexOptions.IgnoreCase);
+            //Console.WriteLine(replaced);
 
             var logEventProperty = propertyFactory.CreateProperty("AppLog", message);
 

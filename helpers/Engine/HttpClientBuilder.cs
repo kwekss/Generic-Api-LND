@@ -4,6 +4,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -21,6 +22,7 @@ namespace helpers.Engine
         private int _statusCode { get; set; }
         private string _url { get; set; }
         private string _method { get; set; }
+        private List<Cookie> _cookieEntries { get; set; } = new List<Cookie>();
         private StringContent _payload { get; set; }
         private List<(string key, string value)> _headers { get; set; } = new List<(string key, string value)>();
 
@@ -75,6 +77,11 @@ namespace helpers.Engine
             _payload = new StringContent(xml_string_payload, Encoding.UTF8, contentType);
             return this;
         }
+        public HttpClientBuilder AddCookie(Cookie cookie)
+        {
+            _cookieEntries.Add(cookie);
+            return this;
+        }
         public async Task<HttpClientBuilder> Execute()
         {
             Log.Information($"HTTP Request Path [{_id}]: {_url}");
@@ -88,6 +95,11 @@ namespace helpers.Engine
                 }
             }
 
+            if (_cookieEntries != null && _cookieEntries.Any())
+            {
+                _client.DefaultRequestHeaders.Add("Cookie", ToHeaderFormat(_cookieEntries));
+            }
+
             HttpResponseMessage response = null;
 
             if (_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
@@ -96,11 +108,50 @@ namespace helpers.Engine
             if (_method.ToLower() == "patch") response = await _client.PatchAsync(_url, _payload);
             if (_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
 
+            getResponeCookies(response);
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
             Log.Information($"Response Payload [{_id}]: {_responsePayload}");
 
             return this;
+        }
+
+
+        private void getResponeCookies(HttpResponseMessage response)
+        {
+            if (!response.Headers.TryGetValues("Set-Cookie", out var cookieEntries))
+            {
+                return;
+            }
+
+            var uri = response.RequestMessage.RequestUri;
+            var cookieContainer = new CookieContainer();
+
+            foreach (var cookieEntry in cookieEntries)
+            {
+                cookieContainer.SetCookies(uri, cookieEntry);
+            }
+
+            _cookieEntries = new List<Cookie> { };
+            _cookieEntries.AddRange(cookieContainer.GetCookies(uri).Cast<Cookie>());
+        }
+        public List<Cookie> GetCookies()
+        {
+            return _cookieEntries;
+        }
+
+        private string ToHeaderFormat(IEnumerable<Cookie> cookies)
+        {
+            var cookieString = string.Empty;
+            var delimiter = string.Empty;
+
+            foreach (var cookie in cookies)
+            {
+                cookieString += delimiter + cookie;
+                delimiter = "; ";
+            }
+
+            return cookieString;
         }
 
         public int StatusCode() => _statusCode;

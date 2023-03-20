@@ -8,6 +8,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Serialization;
 
 namespace helpers
 {
@@ -199,7 +200,16 @@ namespace helpers
 
         public static string Stringify(this object obj, JsonSerializerSettings settings = null) => JsonConvert.SerializeObject(obj, settings);
         public static T ParseObject<T>(this string obj) => JsonConvert.DeserializeObject<T>(obj);
-
+        public static T ParseXml<T>(this string objectData)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(T));
+            object result;
+            using (TextReader reader = new StringReader(objectData))
+            {
+                result = serializer.Deserialize(reader);
+            }
+            return (T)result;
+        }
         public static bool IsEmpty<T>(List<T> list)
         {
             if (list == null) return true;
@@ -248,6 +258,19 @@ namespace helpers
         {
             Random generator = new Random();
             return generator.Next(0, 1000000).ToString($"D{length}");
+        }
+
+        public static string ExtractTagContent(this string responseString, string tagName)
+        {
+            string dataStartTag = "<" + tagName + ">";
+            string dataEndTag = "</" + tagName + ">";
+            int startIndex = responseString.IndexOf(dataStartTag, 0, StringComparison.CurrentCultureIgnoreCase);
+            if (startIndex > 0)
+            {
+                int endIndex = responseString.IndexOf(dataEndTag, startIndex, StringComparison.CurrentCultureIgnoreCase);
+                return responseString.Substring(startIndex + dataStartTag.Length, endIndex - dataStartTag.Length - startIndex).Trim();
+            }
+            return null;
         }
 
         public static int CheckPasswordStrength(string password)
