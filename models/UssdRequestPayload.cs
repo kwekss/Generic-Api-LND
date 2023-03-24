@@ -1,5 +1,5 @@
 ﻿using System;
-namespace AssociationBundles.Core.Models.USSD
+namespace models
 {
     public class UssdRequestPayload
     {
@@ -25,6 +25,8 @@ namespace AssociationBundles.Core.Models.USSD
 
     public class DateData
     {
-
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DateTime RequestDate { get; set; }
     }
 }

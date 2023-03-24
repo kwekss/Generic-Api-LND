@@ -86,6 +86,7 @@ namespace helpers.Engine
         {
             Log.Information($"HTTP Request Path [{_id}]: {_url}");
             Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}");
+            Log.Information($"HTTP Request Paylad [{_id}]: {_payload.Stringify()}");
 
             if (_headers != null && _headers.Any())
             {
@@ -102,6 +103,7 @@ namespace helpers.Engine
 
             HttpResponseMessage response = null;
 
+            Log.Information($"Response Start Time [{_id}]: {DateTime.Now}");
             if (_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
             if (_method.ToLower() == "put") response = await _client.PutAsync(_url, _payload);
             if (_method.ToLower() == "delete") response = await _client.DeleteAsync(_url);
@@ -111,6 +113,9 @@ namespace helpers.Engine
             getResponeCookies(response);
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
+
+            Log.Information($"Response End Time [{_id}]: {DateTime.Now}");
+            Log.Information($"Response Status [{_id}]: {_statusCode}");
             Log.Information($"Response Payload [{_id}]: {_responsePayload}");
 
             return this;

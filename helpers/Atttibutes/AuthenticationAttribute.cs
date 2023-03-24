@@ -3,10 +3,12 @@ using helpers.Interfaces;
 using helpers.Notifications;
 using helpers.Session;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 using System;
 using System.Text;
 using System.Threading.Tasks;
@@ -54,10 +56,15 @@ namespace helpers.Atttibutes
         }
         private void ValidateIntegrator(HttpContext context, IServiceProvider services, Endpoint endpoint)
         {
+            var config  = services.GetService<IConfiguration>();
+            var isIntegratorAuthEnabled = config.GetValue("Utility:Authentication:Integrator:Enabled", true);
+            if (!isIntegratorAuthEnabled) return;
+
             var authorizationString = context.Request.Headers["Authorization"].ToString();
             var payloadObj = GetPayloadFromBody(endpoint).Result;
+
             if (payloadObj == null) throw new CustomException($"Invalid request payload");
-            var payload = JObject.FromObject(payloadObj);
+            JObject payload = JObject.FromObject(payloadObj);
 
             var pathValue = payload.SelectToken(string.IsNullOrWhiteSpace(RequestTimeKey) ? "RequestTime" : RequestTimeKey);
 
@@ -66,8 +73,8 @@ namespace helpers.Atttibutes
             DateTime requestTime = Convert.ToDateTime(pathValue.ToString());
 
             var integrator = services.GetService<IIntegratorHelper>();
-            var messengerHub = services.GetService<IMessengerHub>();
-            messengerHub.Publish(new LogInfo("info", $"Auth String: {authorizationString}"));
+            Log.Information($"Auth String: {authorizationString}");
+
             if (integrator != null)
             {
                 var validateRequest = integrator.ValidateIntegrator(authorizationString, requestTime).Result;
