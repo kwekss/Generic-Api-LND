@@ -48,12 +48,14 @@ namespace helpers.Engine
         public HttpClientBuilder AddPayload(string payload, string contentType = "application/json")
         {
             _payload = new StringContent(payload, Encoding.UTF8, contentType);
+            Log.Information($"HTTP Request Payload [{_id}]: {payload.Stringify()}");
             return this;
         }
 
         public HttpClientBuilder AddPayload(object payload)
         {
             _payload = new StringContent(payload.Stringify(), Encoding.UTF8, "application/json");
+            Log.Information($"HTTP Request Payload [{_id}]: {payload.Stringify()}");
             return this;
         }
 
@@ -85,8 +87,7 @@ namespace helpers.Engine
         public async Task<HttpClientBuilder> Execute()
         {
             Log.Information($"HTTP Request Path [{_id}]: {_url}");
-            Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}");
-            Log.Information($"HTTP Request Paylad [{_id}]: {_payload.Stringify()}");
+            Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}"); 
 
             if (_headers != null && _headers.Any())
             {
@@ -110,7 +111,7 @@ namespace helpers.Engine
             if (_method.ToLower() == "patch") response = await _client.PatchAsync(_url, _payload);
             if (_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
 
-            getResponeCookies(response);
+            getResponseCookies(response);
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
 
@@ -122,7 +123,7 @@ namespace helpers.Engine
         }
 
 
-        private void getResponeCookies(HttpResponseMessage response)
+        private void getResponseCookies(HttpResponseMessage response)
         {
             if (!response.Headers.TryGetValues("Set-Cookie", out var cookieEntries))
             {

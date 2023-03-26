@@ -5,6 +5,7 @@
         public string IntegratorName { get; set; }
         public string IntegratorCode { get; set; }
         public string IntegratorToken { get; set; }
+        public dynamic Data { get; set; }
         public bool Active { get; set; }
     }
 }

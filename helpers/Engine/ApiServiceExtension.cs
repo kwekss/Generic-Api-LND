@@ -21,6 +21,7 @@ namespace helpers.Engine
             config.Bind("Databases", databaseConnections);
 
             Utility.COUNTRY_CODE = config.GetValue("Utility:CountryCode", "233");
+            bool useBuiltInIntegratorStorage = config.GetValue("Utility:Authentication:Integrator:UseBuiltInStorage", true);
 
             string logPath = config.GetValue("LOG_DIR", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"));
             Log.Logger = new LoggerConfiguration()
@@ -36,6 +37,9 @@ namespace helpers.Engine
                             .CreateLogger();
 
             var messageHub = new MessengerHub();
+
+            if (useBuiltInIntegratorStorage)
+                services.AddSingleton<IIntegratorStorage, IntegratorStorage>();
 
             services
                 .AddSingleton(databaseConnections)

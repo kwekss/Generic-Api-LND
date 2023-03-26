@@ -1,8 +1,5 @@
-﻿using models;
-using Newtonsoft.Json;
+﻿using helpers.Engine;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,7 +9,6 @@ namespace helpers.Interfaces
 {
     public class IntegratorHelper : IIntegratorHelper
     {
-        protected static List<Integrator> inMemoryIntegratorList;
         public const string InvalidAuthHeader = "Invalid authorization header";
         public const string InvalidIntegratorMessage = "Integrator account does not exist";
         public const string RequestTooOldMessage = "Invalid request. Request time is too old";
@@ -23,9 +19,11 @@ namespace helpers.Interfaces
         public const string InvalidauthorizationStringMessage = "Invalid authorization string provided";
         public const string dateFormat = "yyyyMMddHHmmss";
 
-        public IntegratorHelper()
+        private readonly IIntegratorStorage _integratorStorage;
+
+        public IntegratorHelper(IIntegratorStorage integratorStorage)
         {
-            inMemoryIntegratorList = GetIntegrators();
+            _integratorStorage = integratorStorage;
         }
         public async Task<string> ValidateIntegrator(string authorizationString, DateTime requestTime)
         {
@@ -40,7 +38,9 @@ namespace helpers.Interfaces
             var IntegratorCode = authorizationArray[0];
             var IntegratorEncryptedBody = authorizationArray[1]; // generated from Integrator Code + Integrator Secret Key
 
-            var selectedIntegrator = inMemoryIntegratorList.FirstOrDefault(integrator => integrator.IntegratorCode == IntegratorCode);
+            var integrators = await _integratorStorage.GetIntegrators();
+
+            var selectedIntegrator = integrators.FirstOrDefault(integrator => integrator.IntegratorCode == IntegratorCode);
             if (selectedIntegrator == null) return InvalidIntegratorMessage;
             var now = DateTime.Now;
 
@@ -67,18 +67,6 @@ namespace helpers.Interfaces
             return hashString;
         }
 
-        private List<Integrator> GetIntegrators()
-        {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configs", "Integrators.json");
-            if (!File.Exists(path)) return null;
-
-            using (var reader = new StreamReader(path))
-            {
-                var result = reader.ReadToEnd();
-                var integrators = JsonConvert.DeserializeObject<List<Integrator>>(result);
-                return integrators;
-            }
-        }
 
         /*  JS Equivalent
             var hash = CryptoJS.SHA256("abc-def-ghi");
