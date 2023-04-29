@@ -10,6 +10,7 @@ namespace helpers.Database
     public interface IDBHelper
     {
         Task Execute(string procedureName, List<StoreProcedureParameter> parameters, Action<IDataReader> callback = null);
+        Task Execute(Connection connection, string procedureName, List<StoreProcedureParameter> parameters, Action<IDataReader> callback = null);
         Task<T> ExecuteRaw<T>(string procedureName, List<StoreProcedureParameter> parameters);
         Task<T> ExecuteRaw<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters);
         Task ExecuteRaw(string procedureName, List<StoreProcedureParameter> parameters);

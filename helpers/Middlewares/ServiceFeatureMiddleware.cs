@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using models;
+using MongoDB.Driver.Core.Misc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Serilog;
@@ -92,6 +93,8 @@ namespace helpers.Middlewares
                     return;
                 }
 
+                Log.Information($"Incoming Request Method: {context.Request.Method}");
+
                 var path = urlPath.Split('/').Where(_ => !string.IsNullOrWhiteSpace(_)).ToList();
                 if (path.Count < 2)
                 {
@@ -130,11 +133,11 @@ namespace helpers.Middlewares
 
                 if (endpoint.RequestBody.Length > 0)
                 {
-                    Log.Information($"Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}");
+                    Log.Information($"Incoming Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}");
                 }
 
                 if (context.Request.QueryString.HasValue)
-                    Log.Information($"Request Query: {context.Request.QueryString.ToUriComponent()}");
+                    Log.Information($"Incoming Request Query: {context.Request.QueryString.ToUriComponent()}");
 
                 var service = _serviceProvider.GetServices<BaseServiceFeature>()
                     .FirstOrDefault(_ => _.GetType().GetCustomAttributes().Any(_ => _.GetType() == typeof(FeatureAttribute)
@@ -162,6 +165,7 @@ namespace helpers.Middlewares
                 }
 
                 var entry = (EntryAttribute)featureEntry.GetCustomAttribute(typeof(EntryAttribute));
+                var feature = (FeatureAttribute)service.GetType().GetCustomAttribute(typeof(FeatureAttribute));
 
                 RouteRegex regexRoute = null;
                 if (!string.IsNullOrWhiteSpace(entry.Route))
@@ -184,24 +188,23 @@ namespace helpers.Middlewares
 
 
                 var state = DeterminingAwaitable(featureEntry);
-                context.Response.Headers["content-type"] = "application/json";
 
                 InvokeEntryAttributes(service, context, endpoint, featureEntry);
 
                 object featureResponse = await InvokeFeatureEntry(context, endpoint, service, featureEntry, state, regexRoute);
+                var responseContent = feature.ContentType.ToLower().Contains("json") ? featureResponse.Stringify(_serializerSettings) : featureResponse;
+                 
+                await WriteResponse(context, responseContent, 200, feature.ContentType);
 
-                Log.Information($"Response: {featureResponse.Stringify(_serializerSettings)}");
-
-                await context.Response.WriteAsync(featureResponse.Stringify(_serializerSettings));
                 return;
             }
             catch (ParameterException e)
-            { 
+            {
                 await Respond(context, e.Message);
                 return;
             }
             catch (ApiRequestStatusException e)
-            { 
+            {
                 var data = e.Message.Split("||");
                 var statusCode = Convert.ToInt32(data[0]);
                 Log.Information($"Response: {statusCode} => {data[1]}");
@@ -226,6 +229,36 @@ namespace helpers.Middlewares
                 Log.Error(e.ToString());
                 await Respond(context, $"A system error occured. Please try again");
                 return;
+            }
+        }
+
+        private async Task WriteResponse(HttpContext context, object responseContent, int responseCode, string contentType)
+        {
+            var originalBodyStream = context.Response.Body;
+            using (var responseBody = new MemoryStream())
+            {
+
+                using var writer = new StreamWriter(responseBody);
+                writer.WriteLine(responseContent);
+                writer.Flush();
+                responseBody.Position = 0;
+
+                context.Response.Body = responseBody;
+                long length = 0;
+                context.Response.OnStarting(() =>
+                {
+                    context.Response.Headers.ContentLength = length;
+                    context.Response.StatusCode = responseCode;
+                    context.Response.Headers["content-type"] = contentType;
+
+                    return Task.CompletedTask;
+                });
+
+                await _next(context);
+
+                length = context.Response.Body.Length;
+                context.Response.Body.Seek(0, SeekOrigin.Begin);
+                await responseBody.CopyToAsync(originalBodyStream);
             }
         }
 
@@ -300,18 +333,22 @@ namespace helpers.Middlewares
 
         private async Task Respond(HttpContext context, string message, int statusCode = 200)
         {
-            context.Response.Headers["content-type"] = "application/json";
             context.Response.StatusCode = statusCode;
             if (_api_type == "USSD_API")
-            {
-                var response = new UssdApiResponse { ResponseBody = message };
-                await context.Response.WriteAsync(response.Stringify(_serializerSettings));
+            { 
+                var response = new UssdApiResponse { ResponseBody = message }.Stringify(_serializerSettings); 
+                await WriteResponse(context, response, statusCode, "application/json");
+            }
+            if (_api_type == "WEB_API")
+            { 
+                var response = new ApiResponse { ResponseMessage = message }.Stringify(_serializerSettings);
+                await WriteResponse(context, response, statusCode, "application/json");
             }
             else
             {
-                var response = new ApiResponse { ResponseMessage = message };
-                await context.Response.WriteAsync(response.Stringify(_serializerSettings));
-            } 
+                context.Response.Headers.ContentLength = message.Length;
+                await WriteResponse(context, message, statusCode, "text/plain");
+            }
         }
 
         private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, Endpoint endpoint, HttpContext httpContext, RouteRegex routeRegex)

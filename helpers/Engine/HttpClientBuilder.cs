@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -20,8 +21,11 @@ namespace helpers.Engine
         private Guid _id { get; set; }
         private string _responsePayload { get; set; }
         private int _statusCode { get; set; }
+        private int _retryMax { get; set; } = 1;
+        private int _retries { get; set; }
         private string _url { get; set; }
         private string _method { get; set; }
+        private Func<HttpClientBuilder, bool> _retryCondition { get; set; }
         private List<Cookie> _cookieEntries { get; set; } = new List<Cookie>();
         private StringContent _payload { get; set; }
         private List<(string key, string value)> _headers { get; set; } = new List<(string key, string value)>();
@@ -30,6 +34,7 @@ namespace helpers.Engine
         {
             _client = client;
             _id = Guid.NewGuid();
+            _retryCondition = (self) => false;
         }
 
         public HttpClientBuilder Url(string url, string method = "GET")
@@ -84,10 +89,20 @@ namespace helpers.Engine
             _cookieEntries.Add(cookie);
             return this;
         }
+        public HttpClientBuilder RetryMax(int retry)
+        {
+            _retryMax = retry;
+            return this;
+        }
+        public HttpClientBuilder RetryIf(Func<HttpClientBuilder, bool> condition)
+        {
+            _retryCondition = condition;
+            return this;
+        }
         public async Task<HttpClientBuilder> Execute()
         {
             Log.Information($"HTTP Request Path [{_id}]: {_url}");
-            Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}"); 
+            Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}");
 
             if (_headers != null && _headers.Any())
             {
@@ -97,10 +112,10 @@ namespace helpers.Engine
                 }
             }
 
-            if (_cookieEntries != null && _cookieEntries.Any())
+            /*if (_cookieEntries != null && _cookieEntries.Any())
             {
                 _client.DefaultRequestHeaders.Add("Cookie", ToHeaderFormat(_cookieEntries));
-            }
+            }*/
 
             HttpResponseMessage response = null;
 
@@ -119,6 +134,12 @@ namespace helpers.Engine
             Log.Information($"Response Status [{_id}]: {_statusCode}");
             Log.Information($"Response Payload [{_id}]: {_responsePayload}");
 
+            if (_retryMax > 1 && _retries < _retryMax && _retryCondition(this))
+            {
+                Log.Information($"Retrying HTTP Request with ID: {_id}");
+                _retries++;
+                await Execute();
+            }
             return this;
         }
 

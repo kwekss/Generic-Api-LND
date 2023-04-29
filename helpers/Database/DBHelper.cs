@@ -55,6 +55,10 @@ namespace helpers.Database
         {
             await _storedProcedureExecutor.ExecuteStoredProcedure(_defaultConnection, $"\"{procedureName}\"", parameters, callback);
         }
+        public async Task Execute(Connection connection, string procedureName, List<StoreProcedureParameter> parameters, Action<IDataReader> callback = null)
+        {
+            await _storedProcedureExecutor.ExecuteStoredProcedure(connection, $"\"{procedureName}\"", parameters, callback);
+        }
         public async Task<T> ExecuteRaw<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters)
         {
             var t = default(T);

@@ -15,9 +15,10 @@ namespace models
         public string ProductType { get; set; }
         public double Amount { get; set; }
         public string Input { get; set; }
+        public int IsNewRequest { get; set; }
         public string Email { get; set; }
         public string Surname { get; set; }
-        public string CardNumber { get; set; }
+        public string AdditionalData { get; set; }
         public string Channel { get; set; }
         public DateTime RequestTimestamp { get; set; }
         public DateData Date { get; set; }

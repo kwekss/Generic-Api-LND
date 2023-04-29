@@ -23,11 +23,7 @@ namespace TestService.Features
         {
 
             var http = await _httpHelper.ClientBuilder().Url("https://jsonplaceholder.typicode.com/todos/1", "GET").Execute();
-            var http2 = await _httpHelper.ClientBuilder()
-                .Url("http://localhost:54073/Login/PerformLogin", "POST")
-                .AddPayload(new {UserId = "admin", Password = "admin" })
-                .Execute();
-
+            
             return new ApiResponse
             {
                 Success = true,
