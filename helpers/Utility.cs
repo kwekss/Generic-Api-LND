@@ -39,6 +39,10 @@ namespace helpers
             {
                 return "0" + phoneNumber.Substring(COUNTRY_CODE.Length);
             }
+            if (phoneNumber.StartsWith($"{COUNTRY_CODE}{COUNTRY_CODE}") && phoneNumber.Length == 9 + $"{COUNTRY_CODE}{COUNTRY_CODE}".Length)
+            {
+                return "0" + phoneNumber.Substring($"{COUNTRY_CODE}{COUNTRY_CODE}".Length);
+            }
             if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
             {
                 return "0" + phoneNumber.Substring(COUNTRY_CODE.Length + 1);
@@ -72,6 +76,10 @@ namespace helpers
             else if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length);
+            }
+            else if (phoneNumber.StartsWith($"{COUNTRY_CODE}{COUNTRY_CODE}") && phoneNumber.Length == 9 + $"{COUNTRY_CODE}{COUNTRY_CODE}".Length)
+            {
+                phoneNumber = phoneNumber.Substring($"{COUNTRY_CODE}{COUNTRY_CODE}".Length);
             }
             else if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
             {
@@ -297,6 +305,28 @@ namespace helpers
                 score++;
 
             return score;
+        }
+
+        public static double DiceCoefficient(string strA, string strB)
+        {
+            HashSet<string> setA = new HashSet<string>();
+            HashSet<string> setB = new HashSet<string>();
+
+
+
+            for (int i = 0; i < strA.Length - 1; ++i)
+                setA.Add(strA.Substring(i, 2));
+
+
+            for (int i = 0; i < strB.Length - 1; ++i)
+                setB.Add(strB.Substring(i, 2));
+
+
+            HashSet<string> intersection = new HashSet<string>(setA);
+            intersection.IntersectWith(setB);
+
+
+            return (2.0 * intersection.Count) / (setA.Count + setB.Count);
         }
     }
 }

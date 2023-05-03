@@ -66,10 +66,10 @@ namespace helpers.Engine
 
         public HttpClientBuilder AddQueryParams(object payload)
         {
-            var payloadObject = (JObject)JsonConvert.DeserializeObject(payload.ToString());
+            var payloadObject = (JObject)JsonConvert.DeserializeObject(payload.Stringify());
             List<JProperty> payloadObjectList = payloadObject.Children().Cast<JProperty>().ToList();
             string requestPayload = string.Join("&", payloadObjectList.Select(jp => jp.Name + "=" + HttpUtility.UrlEncode(jp.Value.ToString())));
-            Log.Information($"Request Query: {requestPayload}");
+            Log.Information($"HTTP Request Query: {requestPayload}");
 
             _url = $"{_url}?{requestPayload}";
 
@@ -99,6 +99,7 @@ namespace helpers.Engine
             _retryCondition = condition;
             return this;
         }
+
         public async Task<HttpClientBuilder> Execute()
         {
             Log.Information($"HTTP Request Path [{_id}]: {_url}");
@@ -112,13 +113,21 @@ namespace helpers.Engine
                 }
             }
 
-            /*if (_cookieEntries != null && _cookieEntries.Any())
+            await ExecuteRequest();
+
+            if (_retryMax > 1 && _retries < _retryMax && _retryCondition(this))
             {
-                _client.DefaultRequestHeaders.Add("Cookie", ToHeaderFormat(_cookieEntries));
-            }*/
+                Log.Information($"Retrying HTTP Request with ID: {_id}");
+                _retries++;
+                await ExecuteRequest();
+            }
+            return this;
+        }
 
+
+        private async Task<HttpClientBuilder> ExecuteRequest()
+        {
             HttpResponseMessage response = null;
-
             Log.Information($"Response Start Time [{_id}]: {DateTime.Now}");
             if (_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
             if (_method.ToLower() == "put") response = await _client.PutAsync(_url, _payload);
@@ -127,6 +136,7 @@ namespace helpers.Engine
             if (_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
 
             getResponseCookies(response);
+
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
 
@@ -134,14 +144,9 @@ namespace helpers.Engine
             Log.Information($"Response Status [{_id}]: {_statusCode}");
             Log.Information($"Response Payload [{_id}]: {_responsePayload}");
 
-            if (_retryMax > 1 && _retries < _retryMax && _retryCondition(this))
-            {
-                Log.Information($"Retrying HTTP Request with ID: {_id}");
-                _retries++;
-                await Execute();
-            }
             return this;
         }
+
 
 
         private void getResponseCookies(HttpResponseMessage response)
@@ -165,20 +170,6 @@ namespace helpers.Engine
         public List<Cookie> GetCookies()
         {
             return _cookieEntries;
-        }
-
-        private string ToHeaderFormat(IEnumerable<Cookie> cookies)
-        {
-            var cookieString = string.Empty;
-            var delimiter = string.Empty;
-
-            foreach (var cookie in cookies)
-            {
-                cookieString += delimiter + cookie;
-                delimiter = "; ";
-            }
-
-            return cookieString;
         }
 
         public int StatusCode() => _statusCode;
