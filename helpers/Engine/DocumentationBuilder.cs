@@ -381,9 +381,11 @@ namespace helpers.Engine
                 "<main role=\"main\"> " +
                 "<elements-api apiDescriptionUrl=\"$$url_prefix$$/api-docs/specs\" router=\"hash\" /> </main> " +
                 "</body> " +
-                "</html>"
-                .Replace("$$name$$", ProjectName(name))
-                .Replace("$$url_prefix$$", _url_prefix);
+                "</html>";
+
+                html = html
+                        .Replace("$$name$$", ProjectName(name))
+                        .Replace("$$url_prefix$$", _url_prefix);
 
             await _httpContextAccessor.HttpContext.Response.WriteAsync(html);
         }
