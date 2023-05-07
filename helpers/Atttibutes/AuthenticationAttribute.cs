@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 namespace helpers.Atttibutes
 {
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class AuthenticationAttribute : Attribute, IEntryAttribute
     {
         
@@ -65,7 +65,7 @@ namespace helpers.Atttibutes
         private void ValidateIdentityServerToken(HttpContext context, IServiceProvider services, ServiceEndpoint endpoint)
         {
             var config  = services.GetService<IConfiguration>();
-            var isAuthEnabled = config.GetValue("Utility:Authentication:IdentityServer:Enabled", true);
+            var isAuthEnabled = config.GetValue("Utility:Authentication:IdentityServer:Enabled", false);
             var authorityEndpoint = config.GetValue("Utility:Authentication:IdentityServer:Authority", "");
             var audience = config.GetSection("Utility:Authentication:IdentityServer:Audience").Get<List<string>>() ?? new List<string>();
             

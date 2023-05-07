@@ -304,6 +304,7 @@ namespace helpers.Middlewares
                     (attributes[j] as IEntryAttribute).InitAttribute(context, endpoint, _serviceProvider);
                 }
             }
+            SetFeatureDefaultValues(context, endpoint, service);
         }
 
         private async Task<object> InvokeFeatureEntry(HttpContext context, ServiceEndpoint endpoint, BaseServiceFeature service, MethodInfo matchingFeature, (bool IsAwaitable, bool ReturnData) state, RouteRegex routeRegex)
@@ -328,6 +329,7 @@ namespace helpers.Middlewares
         {
             typeof(BaseServiceFeature).GetProperty("Service").SetValue(service, endpoint.Service, null);
             typeof(BaseServiceFeature).GetProperty("FeatureName").SetValue(service, endpoint.Feature, null);
+            typeof(BaseServiceFeature).GetProperty("ServiceEndpoint").SetValue(service, endpoint, null);
             typeof(BaseServiceFeature).GetProperty("Context").SetValue(service, context, null);
         }
 

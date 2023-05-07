@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using models;
 
 namespace helpers
 {
@@ -8,7 +9,7 @@ namespace helpers
         public HttpContext Context { get; private set; }
         public string Service { get; private set; }
         public string FeatureName { get; private set; }
-
+        public ServiceEndpoint ServiceEndpoint { get; private set; }
 
     }
 }

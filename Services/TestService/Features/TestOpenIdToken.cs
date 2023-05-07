@@ -2,6 +2,7 @@
 using helpers.Atttibutes;
 using helpers.Interfaces;
 using models;
+using System.Linq;
 using System.Threading.Tasks;
 using TestService.Models;
 
@@ -22,7 +23,8 @@ namespace TestService.Features
         [Authentication(Schema = AuthenticationType.OpenIdToken)]
         public async Task<ApiResponse> Entry([FromJsonBody] TestModel payload)
         {
-
+            var claim = ServiceEndpoint.User.Claims.FirstOrDefault(x => x.Type == "client_id");
+            if (claim == null) return new ApiResponse { ResponseMessage = "Authorization failed."}; 
 
             var http = await _httpHelper.ClientBuilder().Url("https://jsonplaceholder.typicode.com/todos/1", "GET").Execute();
             
