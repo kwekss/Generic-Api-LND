@@ -1,10 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace models
 {
-    public class Endpoint
+    public enum AuthenticationType
     {
-        public Endpoint(List<string> path)
+        Integrator, InternalBearerToken, OpenIdToken
+    }
+    public class ServiceEndpoint
+    {
+        public ServiceEndpoint(List<string> path)
         {
             _path = path;
             Service = path[0];
@@ -22,7 +30,14 @@ namespace models
         public string RequiredFullname { get => $"{Service}Service.Features"; }
         private List<string> _path { get; }
         public byte[] RequestBody { get; set; }
+        public dynamic RequestBodyToObject()
+        { 
+            var data = Encoding.UTF8.GetString(RequestBody);
+            return JsonConvert.DeserializeObject(data);
+        }
         public List<FileContent> Files { get; set; }
+        public ClaimsPrincipal User { get; set; }
+        public AuthenticationType AuthenticationType { get; set; }
     }
 
     public class FileContent

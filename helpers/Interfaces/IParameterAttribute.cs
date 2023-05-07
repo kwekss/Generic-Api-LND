@@ -6,6 +6,6 @@ namespace helpers.Interfaces
 {
     internal interface IParameterAttribute
     {
-        void InitAttribute(ParameterInfo instance, HttpContext context, Endpoint endpoint, object[] args);
+        void InitAttribute(ParameterInfo instance, HttpContext context, ServiceEndpoint endpoint, object[] args);
     }
 }

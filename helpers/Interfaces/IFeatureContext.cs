@@ -5,7 +5,7 @@ namespace helpers.Interfaces
 {
     public interface IFeatureContext
     {
-        Endpoint Endpoint { get; }
+        ServiceEndpoint Endpoint { get; }
         HttpContext HttpContext { get; }
     }
 }

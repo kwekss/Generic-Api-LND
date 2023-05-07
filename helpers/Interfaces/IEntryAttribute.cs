@@ -6,6 +6,6 @@ namespace helpers.Interfaces
 {
     internal interface IEntryAttribute
     {
-        void InitAttribute(HttpContext context, Endpoint endpoint, IServiceProvider serviceProvider);
+        void InitAttribute(HttpContext context, ServiceEndpoint endpoint, IServiceProvider serviceProvider);
     }
 }

@@ -104,7 +104,7 @@ namespace helpers.Middlewares
 
 
 
-                var endpoint = new Endpoint(path);
+                var endpoint = new ServiceEndpoint(path);
                 if (context.Request.Method.ToLower() != "get" && context.Request.ContentType != null && context.Request.ContentType.Contains("multipart/form-data") && (context.Request?.Form?.Files?.Any() ?? false))
                 {
                     endpoint.Files = context.Request.Form.Files.Select((f) =>
@@ -293,7 +293,7 @@ namespace helpers.Middlewares
             return routeRegex;
         }
 
-        private void InvokeEntryAttributes(BaseServiceFeature service, HttpContext context, Endpoint endpoint, MethodInfo entry)
+        private void InvokeEntryAttributes(BaseServiceFeature service, HttpContext context, ServiceEndpoint endpoint, MethodInfo entry)
         {
             SetFeatureDefaultValues(context, endpoint, service);
             var attributes = entry.GetCustomAttributes(true).ToList();
@@ -306,7 +306,7 @@ namespace helpers.Middlewares
             }
         }
 
-        private async Task<object> InvokeFeatureEntry(HttpContext context, Endpoint endpoint, BaseServiceFeature service, MethodInfo matchingFeature, (bool IsAwaitable, bool ReturnData) state, RouteRegex routeRegex)
+        private async Task<object> InvokeFeatureEntry(HttpContext context, ServiceEndpoint endpoint, BaseServiceFeature service, MethodInfo matchingFeature, (bool IsAwaitable, bool ReturnData) state, RouteRegex routeRegex)
         {
             object featureResponse = new { };
             if (state.IsAwaitable && state.ReturnData)
@@ -324,7 +324,7 @@ namespace helpers.Middlewares
             return featureResponse;
         }
 
-        private static void SetFeatureDefaultValues(HttpContext context, Endpoint endpoint, BaseServiceFeature service)
+        private static void SetFeatureDefaultValues(HttpContext context, ServiceEndpoint endpoint, BaseServiceFeature service)
         {
             typeof(BaseServiceFeature).GetProperty("Service").SetValue(service, endpoint.Service, null);
             typeof(BaseServiceFeature).GetProperty("FeatureName").SetValue(service, endpoint.Feature, null);
@@ -351,7 +351,7 @@ namespace helpers.Middlewares
             }
         }
 
-        private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, Endpoint endpoint, HttpContext httpContext, RouteRegex routeRegex)
+        private object[] PopulateParameters(IEnumerable<ParameterInfo> parameters, ServiceEndpoint endpoint, HttpContext httpContext, RouteRegex routeRegex)
         {
             object[] p = new object[parameters.Count()];
             try

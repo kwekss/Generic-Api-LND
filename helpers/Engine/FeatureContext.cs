@@ -12,11 +12,11 @@ namespace helpers.Engine
             var path = httpContext.HttpContext.Request.Path.Value.Split('/').Where(_ => !string.IsNullOrWhiteSpace(_)).ToList();
             if (path.Count < 2)
             {
-                Endpoint = new Endpoint(path);
+                Endpoint = new ServiceEndpoint(path);
             }
         }
 
         public HttpContext HttpContext { get; }
-        public Endpoint Endpoint { get; }
+        public ServiceEndpoint Endpoint { get; }
     }
 }

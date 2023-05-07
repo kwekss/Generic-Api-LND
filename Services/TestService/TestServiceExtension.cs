@@ -12,6 +12,7 @@ namespace TestService
             services
                 .AddSingleton<IUploadProvider, UploadProvider>()
                 .AddSingleton<BaseServiceFeature, TestFeature>()
+                .AddSingleton<BaseServiceFeature, TestOpenIdToken>()
                 .AddSingleton<BaseServiceFeature, UploadDocument>();
 
             return services;

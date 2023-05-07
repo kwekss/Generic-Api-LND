@@ -14,7 +14,7 @@ namespace helpers.Atttibutes
     public class FromQueryAttribute : Attribute, IParameterAttribute
     {
 
-        public void InitAttribute(ParameterInfo instance, HttpContext context, Endpoint endpoint, params object[] args)
+        public void InitAttribute(ParameterInfo instance, HttpContext context, ServiceEndpoint endpoint, params object[] args)
         {
             args[instance.Position] = GetPayloadFromQuery(context, instance.ParameterType).Result;
         }

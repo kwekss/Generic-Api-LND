@@ -66,7 +66,7 @@ namespace helpers.Engine
 
                 var bearerAuths = entries.Any(x => (x.GetCustomAttribute(typeof(AuthenticationAttribute)) as AuthenticationAttribute)?.Schema == AuthenticationType.InternalBearerToken);
                 if (bearerAuths)
-                    components["securitySchemes"]["bearerAuth"] = JObject.FromObject(new { required= true, type = "http", name = "Authorization", scheme = "bearer", @in = "header" });
+                    components["securitySchemes"]["bearerAuth"] = JObject.FromObject(new { required = true, type = "http", name = "Authorization", scheme = "bearer", @in = "header" });
 
                 for (int j = 0; j < entries.Count; j++)
                 {
@@ -84,7 +84,7 @@ namespace helpers.Engine
                         parameters = new List<ApiInfoPathParameter> { },
                         responses = new JObject(),
                         security = new JObject()
-                    }; 
+                    };
 
                     var resp200 = new ApiInfoPathResponse { description = "", content = new JObject() };
 
@@ -333,8 +333,13 @@ namespace helpers.Engine
             }
 
             var authAttr = entryType.GetCustomAttribute(typeof(AuthenticationAttribute)) as AuthenticationAttribute;
-            if (authAttr?.Schema == AuthenticationType.InternalBearerToken)
-            { 
+            List<AuthenticationType> authTypes = new List<AuthenticationType> {
+                AuthenticationType.InternalBearerToken,
+                AuthenticationType.OpenIdToken
+            };
+
+            if (authAttr != null && authAttr.Schema != null && authTypes.Contains(authAttr.Schema))
+            {
                 payloads.Add(new ApiInfoPathParameter
                 {
                     description = "Bearer Token",
@@ -383,9 +388,9 @@ namespace helpers.Engine
                 "</body> " +
                 "</html>";
 
-                html = html
-                        .Replace("$$name$$", ProjectName(name))
-                        .Replace("$$url_prefix$$", _url_prefix);
+            html = html
+                    .Replace("$$name$$", ProjectName(name))
+                    .Replace("$$url_prefix$$", _url_prefix);
 
             await _httpContextAccessor.HttpContext.Response.WriteAsync(html);
         }
@@ -394,7 +399,7 @@ namespace helpers.Engine
 
         private string ProjectName(string projectName)
         {
-            var SolutionFullPath = Directory.GetParent(Directory.GetCurrentDirectory()).FullName.Replace("\\","/");
+            var SolutionFullPath = Directory.GetParent(Directory.GetCurrentDirectory()).FullName.Replace("\\", "/");
             var tempStrings = SolutionFullPath.Split('/');
             return _textInfo.ToTitleCase($"{tempStrings[tempStrings.Length - 2].Replace("_", " ").Replace("-", " ")} - {projectName.Replace("_", " ").Replace("-", " ")} ");
         }
