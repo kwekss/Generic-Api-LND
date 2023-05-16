@@ -63,7 +63,7 @@ namespace helpers.Middlewares
         {
             try
             {
-                LogContext.PushProperty("CorrelationId", GetCorrelationId(context));
+                LogContext.PushProperty("CorrelationId", Guid.NewGuid().ToString());
 
                 var projectName = AppDomain.CurrentDomain.FriendlyName;
 
@@ -412,10 +412,5 @@ namespace helpers.Middlewares
                 return (false, methodInfo.ReturnType != typeof(void));
         }
 
-        public string GetCorrelationId(HttpContext httpContext)
-        {
-            httpContext.Request.Headers.TryGetValue("Cko-Correlation-Id", out StringValues correlationId);
-            return correlationId.FirstOrDefault() ?? httpContext.TraceIdentifier;
-        }
     }
 }

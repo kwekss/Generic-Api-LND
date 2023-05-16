@@ -109,7 +109,8 @@ namespace helpers.Engine
             {
                 for (int i = 0; i < _headers.Count; i++)
                 {
-                    _client.DefaultRequestHeaders.Add(_headers[i].key, _headers[i].value);
+                    var isAdded = _client.DefaultRequestHeaders.TryAddWithoutValidation(_headers[i].key, _headers[i].value);
+                    if (!isAdded) Log.Warning($"Failed to add header => {_headers[i].key} = {_headers[i].value}");
                 }
             }
 
