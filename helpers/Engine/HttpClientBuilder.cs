@@ -101,11 +101,8 @@ namespace helpers.Engine
         }
 
         public async Task<HttpClientBuilder> Execute()
-        {
-            Log.Information($"HTTP Request Path [{_id}]: {_url}");
-            Log.Information($"HTTP Request Headers [{_id}]: {_headers.Stringify()}");
-
-            if (_headers != null && _headers.Any())
+        { 
+            if (_retries == 0 && _headers != null && _headers.Any())
             {
                 for (int i = 0; i < _headers.Count; i++)
                 {
@@ -119,8 +116,9 @@ namespace helpers.Engine
             if (_retryMax > 1 && _retries < _retryMax && _retryCondition(this))
             {
                 Log.Information($"Retrying HTTP Request with ID: {_id}");
+
                 _retries++;
-                await ExecuteRequest();
+                await Execute();
             }
             return this;
         }
@@ -128,8 +126,14 @@ namespace helpers.Engine
 
         private async Task<HttpClientBuilder> ExecuteRequest()
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
             HttpResponseMessage response = null;
-            Log.Information($"Response Start Time [{_id}]: {DateTime.Now}");
+
+            Log.Information($"HTTP Request Path [{_id}]: {_url}");
+            Log.Information($"HTTP Request Headers [{_id}]: {_client.DefaultRequestHeaders.Stringify()}");
+            Log.Information($"HTTP Response Start Time [{_id}]: {DateTime.Now}");
+            
             if (_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
             if (_method.ToLower() == "put") response = await _client.PutAsync(_url, _payload);
             if (_method.ToLower() == "delete") response = await _client.DeleteAsync(_url);
@@ -137,13 +141,15 @@ namespace helpers.Engine
             if (_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
 
             getResponseCookies(response);
+            Log.Information($"HTTP Response Headers [{_id}]: {response.Headers.Stringify()}");
 
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
+            
+            watch.Stop();
 
-            Log.Information($"Response End Time [{_id}]: {DateTime.Now}");
-            Log.Information($"Response Status [{_id}]: {_statusCode}");
-            Log.Information($"Response Payload [{_id}]: {_responsePayload}");
+            Log.Information($"HTTP Response End Time [{_id}]: {DateTime.Now}, Duration: {watch.ElapsedMilliseconds} ms"); 
+            Log.Information($"HTTP Response Payload [{_id}]: RC: {_statusCode}, {_responsePayload}");
 
             return this;
         }

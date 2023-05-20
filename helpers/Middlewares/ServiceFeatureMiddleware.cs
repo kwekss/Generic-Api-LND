@@ -93,7 +93,7 @@ namespace helpers.Middlewares
                     return;
                 }
 
-                Log.Information($"Incoming Request Method: {context.Request.Method}");
+                Log.Information($"Incoming Request: {context.Request.Method} {urlPath}");
 
                 var path = urlPath.Split('/').Where(_ => !string.IsNullOrWhiteSpace(_)).ToList();
                 if (path.Count < 2)

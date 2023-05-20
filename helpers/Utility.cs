@@ -1,4 +1,5 @@
 ﻿using helpers.Exceptions;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -328,5 +329,23 @@ namespace helpers
 
             return (2.0 * intersection.Count) / (setA.Count + setB.Count);
         }
+
+        public static string EncryptSha256(string rawText)
+        { 
+            byte[] hash = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(rawText));
+            string hashString = string.Empty;
+            foreach (byte x in hash)
+            {
+                hashString += string.Format("{0:x2}", x);
+            }
+            return hashString;
+        }
+        public static string ShuffleString(params string[] str)
+        {
+            var rnd = new Random(); 
+            string unsuffled = string.Join("", str);
+            return new string(unsuffled.OrderBy(r => rnd.Next()).ToArray()); 
+        }
+
     }
 }

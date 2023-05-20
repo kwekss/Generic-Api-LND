@@ -1,8 +1,6 @@
 ﻿using helpers.Engine;
 using System;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace helpers.Interfaces
@@ -50,28 +48,9 @@ namespace helpers.Interfaces
             if (minuteIntervals < -2) return RequestInFutureMessage;
             if (minuteIntervals > 2) return RequestTooOldMessage;
 
-            var selectedIntegratorEnc = Sha256encrypt(requestTime, selectedIntegrator.IntegratorToken);
+            var selectedIntegratorEnc = Utility.EncryptSha256($"{requestTime.ToString(dateFormat)}{selectedIntegrator.IntegratorToken}");
             if (selectedIntegratorEnc != IntegratorEncryptedBody) throw new InvalidOperationException(InvalidEncryptionMessage);
             return null;
-        }
-
-        public string Sha256encrypt(DateTime requestTime, string integratorSecretKey)
-        {
-            var phrase = $"{requestTime.ToString(dateFormat)}{integratorSecretKey}";
-            byte[] hash = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(phrase));
-            string hashString = string.Empty;
-            foreach (byte x in hash)
-            {
-                hashString += string.Format("{0:x2}", x);
-            }
-            return hashString;
-        }
-
-
-        /*  JS Equivalent
-            var hash = CryptoJS.SHA256("abc-def-ghi");
-            var hexhash = hash.toString(CryptoJS.enc.hex);
-            console.log(hexhash);
-         */
+        } 
     }
 }

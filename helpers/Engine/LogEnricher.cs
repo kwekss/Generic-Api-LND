@@ -11,12 +11,12 @@ namespace helpers.Engine
     public class LogEnricher : ILogEventEnricher
     {
         private readonly int _truncate_at;
-        private readonly List<string> _mask_patterns;
+        private readonly List<LogMask> _mask_patterns;
 
         public LogEnricher(IConfiguration config)
         {
             _truncate_at = config.GetValue("Utility:Logging:TRUNCATE_AT", 0);
-            _mask_patterns = config.GetSection("Utility:Logging:Masking").Get<List<string>>();
+            _mask_patterns = config.GetSection("Utility:Logging:Masking").Get<List<LogMask>>();
         }
 
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
@@ -44,7 +44,7 @@ namespace helpers.Engine
             {
                 for (int i = 0; i < _mask_patterns.Count; i++)
                 { 
-                    message = Regex.Replace(message, _mask_patterns[i], "$1***$2", RegexOptions.IgnoreCase);
+                    message = Regex.Replace(message, _mask_patterns[i].Pattern, _mask_patterns[i].Mask, RegexOptions.IgnoreCase);
                 }
             }
             //string invokeSpec = "\":{\"Account\":\"d\\\\adm\",\"password\":\"cWExZjEiMTM=\"},\"SqlServer\":{\"InstanceName\":\"\",\"MachineName\":\"MyMachine\",\"Port\":null}";
@@ -56,5 +56,11 @@ namespace helpers.Engine
 
             logEvent.AddPropertyIfAbsent(logEventProperty);
         }
+    }
+
+    internal class LogMask
+    {
+        public string Pattern { get; set; }
+        public string Mask { get; set; }
     }
 }
