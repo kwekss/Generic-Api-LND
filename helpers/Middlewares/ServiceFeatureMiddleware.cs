@@ -193,7 +193,7 @@ namespace helpers.Middlewares
 
                 object featureResponse = await InvokeFeatureEntry(context, endpoint, service, featureEntry, state, regexRoute);
                 var responseContent = feature.ContentType.ToLower().Contains("json") ? featureResponse.Stringify(_serializerSettings) : featureResponse;
-                 
+
                 await WriteResponse(context, responseContent, 200, feature.ContentType);
 
                 return;
@@ -244,6 +244,8 @@ namespace helpers.Middlewares
                 responseBody.Position = 0;
 
                 context.Response.Body = responseBody;
+                //Log.Information($"Response Sent: {contentType} {responseCode} {responseBody}");
+
                 long length = 0;
                 context.Response.OnStarting(() =>
                 {
@@ -337,12 +339,12 @@ namespace helpers.Middlewares
         {
             context.Response.StatusCode = statusCode;
             if (_api_type == "USSD_API")
-            { 
-                var response = new UssdApiResponse { ResponseBody = message }.Stringify(_serializerSettings); 
+            {
+                var response = new UssdApiResponse { ResponseBody = message }.Stringify(_serializerSettings);
                 await WriteResponse(context, response, statusCode, "application/json");
             }
             if (_api_type == "WEB_API")
-            { 
+            {
                 var response = new ApiResponse { ResponseMessage = message }.Stringify(_serializerSettings);
                 await WriteResponse(context, response, statusCode, "application/json");
             }

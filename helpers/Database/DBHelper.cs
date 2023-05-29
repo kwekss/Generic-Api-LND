@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace helpers.Database
@@ -29,7 +30,7 @@ namespace helpers.Database
             return _connections.FirstOrDefault(_ => _.Name?.ToLower() == connectionName.ToLower());
         }
         public async Task Subscribe(string tag, NotificationEventHandler handler)
-        {
+        { 
             _storedProcedureExecutor.Subscribe(_defaultConnection, tag, handler);
         }
         public async Task<List<T>> Fetch<T>(string procedureName, List<StoreProcedureParameter> parameters)

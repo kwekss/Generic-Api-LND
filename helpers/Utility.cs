@@ -347,5 +347,13 @@ namespace helpers
             return new string(unsuffled.OrderBy(r => rnd.Next()).ToArray()); 
         }
 
+        public static IEnumerable<IEnumerable<T>> Split<T>(this T[] arr, int size)
+        {
+            for (var i = 0; i < arr.Length / size + 1; i++)
+            {
+                yield return arr.Skip(i * size).Take(size);
+            }
+        }
+
     }
 }
