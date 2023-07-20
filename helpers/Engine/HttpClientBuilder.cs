@@ -23,6 +23,7 @@ namespace helpers.Engine
         private int _statusCode { get; set; }
         private int _retryMax { get; set; } = 1;
         private int _retries { get; set; }
+        private bool _loggingEnabled { get; set; }
         private string _url { get; set; }
         private string _method { get; set; }
         private Func<HttpClientBuilder, bool> _retryCondition { get; set; }
@@ -35,6 +36,7 @@ namespace helpers.Engine
             _client = client;
             _id = Guid.NewGuid();
             _retryCondition = (self) => false;
+            _loggingEnabled = true;
         }
 
         public HttpClientBuilder Url(string url, string method = "GET")
@@ -53,14 +55,14 @@ namespace helpers.Engine
         public HttpClientBuilder AddPayload(string payload, string contentType = "application/json")
         {
             _payload = new StringContent(payload, Encoding.UTF8, contentType);
-            Log.Information($"HTTP Request Payload [{_id}]: {payload.Stringify()}");
+            if (_loggingEnabled) Log.Information($"HTTP Request Payload [{_id}]: {payload.Stringify()}");
             return this;
         }
 
         public HttpClientBuilder AddPayload(object payload)
         {
             _payload = new StringContent(payload.Stringify(), Encoding.UTF8, "application/json");
-            Log.Information($"HTTP Request Payload [{_id}]: {payload.Stringify()}");
+            if (_loggingEnabled) Log.Information($"HTTP Request Payload [{_id}]: {payload.Stringify()}");
             return this;
         }
 
@@ -69,7 +71,7 @@ namespace helpers.Engine
             var payloadObject = (JObject)JsonConvert.DeserializeObject(payload.Stringify());
             List<JProperty> payloadObjectList = payloadObject.Children().Cast<JProperty>().ToList();
             string requestPayload = string.Join("&", payloadObjectList.Select(jp => jp.Name + "=" + HttpUtility.UrlEncode(jp.Value.ToString())));
-            Log.Information($"HTTP Request Query: {requestPayload}");
+            if (_loggingEnabled) Log.Information($"HTTP Request Query: {requestPayload}");
 
             _url = $"{_url}?{requestPayload}";
 
@@ -80,7 +82,9 @@ namespace helpers.Engine
             var xml_string_payload = payload.OuterXml;
             xml_string_payload = Regex.Replace(xml_string_payload, ">\\s+", ">");
             xml_string_payload = Regex.Replace(xml_string_payload, "\\s+<", "<");
-            Log.Information($"HTTP Request Payload [{_id}]: {xml_string_payload}");
+
+            if (_loggingEnabled) Log.Information($"HTTP Request Payload [{_id}]: {xml_string_payload}");
+
             _payload = new StringContent(xml_string_payload, Encoding.UTF8, contentType);
             return this;
         }
@@ -94,28 +98,33 @@ namespace helpers.Engine
             _retryMax = retry;
             return this;
         }
+        public HttpClientBuilder EnableLogging(bool state)
+        {
+            _loggingEnabled = state;
+            return this;
+        }
         public HttpClientBuilder RetryIf(Func<HttpClientBuilder, bool> condition)
         {
             _retryCondition = condition;
             return this;
         }
 
-        public async Task<HttpClientBuilder> Execute()
-        { 
+        public async Task<HttpClientBuilder> Execute(bool logPayload = true)
+        {
             if (_retries == 0 && _headers != null && _headers.Any())
             {
                 for (int i = 0; i < _headers.Count; i++)
                 {
                     var isAdded = _client.DefaultRequestHeaders.TryAddWithoutValidation(_headers[i].key, _headers[i].value);
-                    if (!isAdded) Log.Warning($"Failed to add header => {_headers[i].key} = {_headers[i].value}");
+                    if (!isAdded && _loggingEnabled) Log.Warning($"Failed to add header => {_headers[i].key} = {_headers[i].value}");
                 }
             }
 
-            await ExecuteRequest();
+            await ExecuteRequest(logPayload);
 
             if (_retryMax > 1 && _retries < _retryMax && _retryCondition(this))
             {
-                Log.Information($"Retrying HTTP Request with ID: {_id}");
+                if (_loggingEnabled) Log.Information($"Retrying HTTP Request with ID: {_id}");
 
                 _retries++;
                 await Execute();
@@ -124,16 +133,18 @@ namespace helpers.Engine
         }
 
 
-        private async Task<HttpClientBuilder> ExecuteRequest()
+        private async Task<HttpClientBuilder> ExecuteRequest(bool logPayload = true)
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
 
             HttpResponseMessage response = null;
+            if (_loggingEnabled)
+            {
+                Log.Information($"HTTP Request Path [{_id}]: {_url}");
+                Log.Information($"HTTP Request Headers [{_id}]: {_client.DefaultRequestHeaders.Stringify()}");
+                Log.Information($"HTTP Response Start Time [{_id}]: {DateTime.Now}");
+            }
 
-            Log.Information($"HTTP Request Path [{_id}]: {_url}");
-            Log.Information($"HTTP Request Headers [{_id}]: {_client.DefaultRequestHeaders.Stringify()}");
-            Log.Information($"HTTP Response Start Time [{_id}]: {DateTime.Now}");
-            
             if (_method.ToLower() == "post") response = await _client.PostAsync(_url, _payload);
             if (_method.ToLower() == "put") response = await _client.PutAsync(_url, _payload);
             if (_method.ToLower() == "delete") response = await _client.DeleteAsync(_url);
@@ -141,16 +152,15 @@ namespace helpers.Engine
             if (_method.ToLower() == "get" || response == null) response = await _client.GetAsync(_url);
 
             getResponseCookies(response);
-            Log.Information($"HTTP Response Headers [{_id}]: {response.Headers.Stringify()}");
+            if (_loggingEnabled) Log.Information($"HTTP Response Headers [{_id}]: {response.Headers.Stringify()}");
 
             _statusCode = (int)response.StatusCode;
             _responsePayload = await response.Content.ReadAsStringAsync();
-            
+
             watch.Stop();
-
-            Log.Information($"HTTP Response End Time [{_id}]: {DateTime.Now}, Duration: {watch.ElapsedMilliseconds} ms"); 
-            Log.Information($"HTTP Response Payload [{_id}]: RC: {_statusCode}, {_responsePayload}");
-
+            if (_loggingEnabled)Log.Information($"HTTP Response End Time [{_id}]: {DateTime.Now}, Duration: {watch.ElapsedMilliseconds} ms");
+            if (_loggingEnabled) Log.Information($"HTTP Response Payload [{_id}]: RC: {_statusCode}, {_responsePayload}");
+                 
             return this;
         }
 

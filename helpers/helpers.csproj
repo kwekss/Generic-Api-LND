@@ -7,8 +7,8 @@
         <PackageId>Acs.GenericApi.Helpers</PackageId>
         <Authors>Samuel Asiedu</Authors>
         <Description>A Generic API with helpers for creating APIs for the web, USSD and generic ussd projects</Description>
-        <AssemblyVersion>1.0.10.4</AssemblyVersion>
-        <Version>1.10.4</Version>
+        <AssemblyVersion>1.0.10.18</AssemblyVersion>
+        <Version>1.10.18</Version>
         <Title>Generic API</Title>
 		<IsPackable>true</IsPackable>
     </PropertyGroup>

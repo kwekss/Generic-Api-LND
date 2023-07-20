@@ -16,9 +16,11 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace helpers.Atttibutes
 {
@@ -121,19 +123,24 @@ namespace helpers.Atttibutes
             var config  = services.GetService<IConfiguration>();
             var isIntegratorAuthEnabled = config.GetValue("Utility:Authentication:Integrator:Enabled", true);
             if (!isIntegratorAuthEnabled) return;
+            dynamic payloadObj = null;
 
             var authorizationString = context.Request.Headers["Authorization"].ToString();
-            var payloadObj = endpoint.RequestBodyToObject();
+            
+            if (context.Request.Method.ToUpper() == "GET") 
+                payloadObj = GetPayloadFromQuery(context);
+            else
+                payloadObj = endpoint.RequestBodyToObject();
+           
 
             if (payloadObj == null) throw new CustomException($"Invalid request payload");
-            JObject payload = JObject.FromObject(payloadObj);
+            JObject payload = JObject.Parse($"{payloadObj}".ToLower());
 
-            var pathValue = payload.SelectToken(string.IsNullOrWhiteSpace(RequestTimeKey) ? "RequestTime" : RequestTimeKey);
+            var pathValue = payload.SelectToken(string.IsNullOrWhiteSpace(RequestTimeKey) ? "requesttime" : RequestTimeKey.ToLower());
 
             if (string.IsNullOrWhiteSpace(pathValue?.ToString())) throw new CustomException($"Request timestamp must be set");
-
-            DateTime requestTime = Convert.ToDateTime(pathValue.ToString());
-
+            if(!DateTime.TryParse(pathValue?.ToString(), out var requestTime)) throw new CustomException($"Invalid request timestamp provided");
+ 
             var integrator = services.GetService<IIntegratorHelper>();
             Log.Information($"Auth String: {authorizationString}");
 
@@ -149,6 +156,18 @@ namespace helpers.Atttibutes
             {
                 throw new CustomException("An error occured. Please try again");
             }
+        }
+
+        private dynamic GetPayloadFromQuery(HttpContext httpContext)
+        {
+            var source = HttpUtility.ParseQueryString(httpContext.Request.QueryString.ToUriComponent());
+            string serialized = System.Text.Json.JsonSerializer.Serialize(source.AllKeys.ToDictionary(k => k, k =>
+            {
+                dynamic val = source.GetValues(k);
+                if (val.Length > 1) return val;
+                return (val as Array).GetValue(0);
+            }));
+            return JsonConvert.DeserializeObject(serialized);
         }
     }
 

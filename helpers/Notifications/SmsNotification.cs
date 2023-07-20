@@ -45,5 +45,30 @@ namespace helpers.Notifications
 
             return response;
         }
+    
+        public async Task<string> Dispatch(List<(string recipient, string message)> data, params dynamic[] extra)
+        {
+            string senderId;
+            if (extra != null && extra.Any())
+                senderId = extra[0].ToString();
+            else
+                senderId = _senderId;
+
+            var smses = string.Join(";;", data.Select(x => x.recipient + "||" + x.message));
+
+            var parameters = new List<StoreProcedureParameter> {
+                new StoreProcedureParameter { Name="reqSender", Type = NpgsqlDbType.Varchar, Value = senderId },
+                new StoreProcedureParameter { Name="reqMessageAndMsisdns", Type = NpgsqlDbType.Varchar, Value = smses }
+            };
+
+            await _dbHelper.ExecuteRaw(_smsConnection, "ScheduleBulkSmsBulkRecipients_PipeSeparated", parameters);
+
+            var response = $"Message sent to: {data.Count} recipients at {DateTime.UtcNow}";
+
+            _messengerHub.Publish(new LogInfo("info", $"SMS: {response}"));
+
+            return response;
+        }
+    
     }
 }

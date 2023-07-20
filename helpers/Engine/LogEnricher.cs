@@ -47,10 +47,6 @@ namespace helpers.Engine
                     message = Regex.Replace(message, _mask_patterns[i].Pattern, _mask_patterns[i].Mask, RegexOptions.IgnoreCase);
                 }
             }
-            //string invokeSpec = "\":{\"Account\":\"d\\\\adm\",\"password\":\"cWExZjEiMTM=\"},\"SqlServer\":{\"InstanceName\":\"\",\"MachineName\":\"MyMachine\",\"Port\":null}";
-            //var pattern = "(\\\"password\\\":(\\s*)?)\\\"[^\\\"]*(\\\")";
-            //var replaced = Regex.Replace(invokeSpec, pattern, "$1***$2", RegexOptions.IgnoreCase);
-            //Console.WriteLine(replaced);
 
             var logEventProperty = propertyFactory.CreateProperty("AppLog", message);
 

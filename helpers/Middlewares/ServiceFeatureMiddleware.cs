@@ -5,9 +5,7 @@ using helpers.Notifications;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Primitives;
 using models;
-using MongoDB.Driver.Core.Misc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Serilog;
@@ -21,6 +19,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using static MongoDB.Libmongocrypt.CryptContext;
 
 namespace helpers.Middlewares
 {
@@ -32,6 +31,7 @@ namespace helpers.Middlewares
         private readonly IConfiguration _config;
         private readonly RequestDelegate _next;
         private readonly bool _is_logging_enabled;
+        private readonly bool _is_response_logging_enabled;
         private readonly bool _is_api_doc_enabled;
         private readonly string _url_prefix;
         private readonly string _api_type;
@@ -44,10 +44,11 @@ namespace helpers.Middlewares
             _serviceProvider = serviceProvider;
             _config = config;
             _next = next;
-            _is_logging_enabled = Convert.ToBoolean(config["ENABLE_LOGGING"] ?? "false");
-            _is_api_doc_enabled = Convert.ToBoolean(config["ENABLE_API_DOCS"] ?? "false");
-            _api_type = config["API_TYPE"] ?? "WEB_API";
-            _url_prefix = config["URL_PREFIX"] ?? "";
+            _is_response_logging_enabled = config.GetValue("Utility:Logging:ENABLE_RESPONSE_LOG", false);
+            _is_logging_enabled = config.GetValue("ENABLE_LOGGING", false);
+            _is_api_doc_enabled = config.GetValue("ENABLE_API_DOCS", false);
+            _api_type = config.GetValue("API_TYPE", "WEB_API");
+            _url_prefix = config.GetValue("URL_PREFIX","");
 
             _serializerSettings = new JsonSerializerSettings
             {
@@ -207,7 +208,7 @@ namespace helpers.Middlewares
             {
                 var data = e.Message.Split("||");
                 var statusCode = Convert.ToInt32(data[0]);
-                Log.Information($"Response: {statusCode} => {data[1]}");
+                if(!_is_response_logging_enabled) Log.Information($"Response: {statusCode} => {data[1]}");
 
                 await Respond(context, data[1], statusCode);
                 return;
@@ -235,6 +236,10 @@ namespace helpers.Middlewares
         private async Task WriteResponse(HttpContext context, object responseContent, int responseCode, string contentType)
         {
             var originalBodyStream = context.Response.Body;
+
+            if (_is_response_logging_enabled) 
+                Log.Information($"Response for Incoming Request [{responseCode}]: {responseContent}");
+            
             using (var responseBody = new MemoryStream())
             {
 
@@ -260,6 +265,8 @@ namespace helpers.Middlewares
 
                 length = context.Response.Body.Length;
                 context.Response.Body.Seek(0, SeekOrigin.Begin);
+                context.Response.StatusCode = responseCode;
+                context.Response.Headers["content-type"] = contentType;
                 await responseBody.CopyToAsync(originalBodyStream);
             }
         }

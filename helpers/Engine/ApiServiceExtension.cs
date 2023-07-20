@@ -17,24 +17,45 @@ namespace helpers.Engine
     {
         public static IServiceCollection AddSharedService(this IServiceCollection services, IConfiguration config)
         {
+
             List<Connection> databaseConnections = new List<Connection>();
             config.Bind("Databases", databaseConnections);
 
             Utility.COUNTRY_CODE = config.GetValue("Utility:CountryCode", "233");
+            var enableConsoleLog = config.GetValue("Utility:Logging:EnableConsoleLogs", true);
+
+            var logLevel = config.GetValue("Utility:Logging:Level", "Information");
+
+            var enableFileLog = config.GetValue("Utility:Logging:EnableFileLogs", true);
             bool useBuiltInIntegratorStorage = config.GetValue("Utility:Authentication:Integrator:UseBuiltInStorage", true);
 
             string logPath = config.GetValue("LOG_DIR", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"));
-            Log.Logger = new LoggerConfiguration()
+            var logger = new LoggerConfiguration()
                             .MinimumLevel.Information()
-                            .WriteTo.Console()
-                            .WriteTo.Map(evt => evt.Level, (level, wt) => wt.File(
-                                Path.Combine(logPath, $"{level}", $"{DateTime.UtcNow:yyyy-MM-dd}.log"),
-                                outputTemplate: "{Timestamp:yyyy-MM-dd hh:mm:ss tt} [{CorrelationId}] - {AppLog}{NewLine}{Exception}"
-                                )
-                            )
-                            .Enrich.With(new LogEnricher(config))
-                            .Enrich.FromLogContext()
-                            .CreateLogger();
+                            ;
+
+            if (logLevel == "Information") logger = logger.MinimumLevel.Information();
+            if (logLevel == "Verbose") logger = logger.MinimumLevel.Verbose();
+            if (logLevel == "Debug") logger = logger.MinimumLevel.Debug();
+            if (logLevel == "Warning") logger = logger.MinimumLevel.Warning();
+            if (logLevel == "Error") logger = logger.MinimumLevel.Error();
+
+            if (enableConsoleLog) logger = logger.WriteTo.Console();
+
+            if (enableFileLog)
+            {
+                logger = logger.WriteTo.Map(evt => evt.Level, (level, wt) => wt.File(
+                                 Path.Combine(logPath, $"{level}", $"{DateTime.UtcNow:yyyy-MM-dd}.log"),
+                                 rollingInterval: RollingInterval.Day,
+                                 outputTemplate: "{Timestamp:yyyy-MM-dd hh:mm:ss tt} [{CorrelationId}] - {AppLog}{NewLine}{Exception}"
+                                 )
+                             );
+            }
+
+            logger = logger.Enrich.With(new LogEnricher(config))
+                           .Enrich.FromLogContext();
+
+            Log.Logger = logger.CreateLogger();
 
             var messageHub = new MessengerHub();
 

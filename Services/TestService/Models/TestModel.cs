@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using models;
+using System;
 
 namespace TestService.Models
 {
@@ -8,6 +9,7 @@ namespace TestService.Models
         public string Prop { get; set; }
         [ApiDoc(Description = "Some description for data object", Default = 1234)]
         public int Id { get; set; }
+        public DateTime RequestTime { get; set; }
 
         public DataModel Data { get; set; }
     }

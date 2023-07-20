@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <PackageReference Include="Winton.Extensions.Configuration.Consul" Version="3.3.0" />
+  </ItemGroup>
+	
+  <ItemGroup>
     <ProjectReference Include="..\..\helpers\helpers.csproj" /> 
     <ProjectReference Include="..\..\models\models.csproj" /> 
     <ProjectReference Include="..\..\Services\AuthService\AuthService.csproj" /> 

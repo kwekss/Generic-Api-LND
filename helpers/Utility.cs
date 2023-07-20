@@ -354,6 +354,49 @@ namespace helpers
                 yield return arr.Skip(i * size).Take(size);
             }
         }
+        public static string FormatDataMb(this double data)
+        {
+            string dataVol = "";
+            if (data >= 0 && data < 1024)
+            {
+                dataVol = $"{data:#,##0.#0} MB";
+            }
+            else if (data > 1023 && data < 1048576)
+            {
+                dataVol = $"{(data / 1024):#,##0.#0} GB";
+            }
+            else if (data > 1048575)
+            {
+                dataVol = $"{(data / 1048576):#,##0.#0} TB";
+            }
+            return dataVol;
+        }
+
+        public static string FormatVoiceSec(this double voiceAmount)
+        {
+            if (voiceAmount <= 0 || voiceAmount > TimeSpan.MaxValue.TotalSeconds)
+                return string.Empty;
+
+            var returnValue = new StringBuilder();
+
+            var t = TimeSpan.FromSeconds(voiceAmount);
+            var min = t.Days * 1440 + t.Hours * 60 + t.Minutes;
+            var sec = t.Seconds;
+
+            if (min > 0)
+            {
+                returnValue.Append(min);
+                returnValue.Append(min > 1 ? " Mins " : " Min ");
+            }
+
+            if (sec > 0)
+            {
+                returnValue.Append(sec);
+                returnValue.Append(sec > 1 ? " Secs" : " Sec");
+            }
+
+            return returnValue.ToString().Trim();
+        }
 
     }
 }
