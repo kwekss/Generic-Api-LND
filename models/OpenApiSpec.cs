@@ -18,7 +18,8 @@ namespace models
     public class OpenApiServer
     {
         public string url { get; set; }
-        public OpenApiServerVars variables { get; set; }
+        public string description { get; set; }
+        public dynamic variables { get; set; }
 
     }
     public class OpenApiServerVars
@@ -67,6 +68,7 @@ namespace models
     public class ApiInfoPathParameterSchema
     {
         public string type { get; set; }
+        public string format { get; set; }
         public string @default { get; set; }
     }
     public class ApiInfoPathRequestBody
@@ -77,6 +79,8 @@ namespace models
     public class ApiInfoPathRequestBodySchema
     {
         public string type { get; set; }
+        public string format { get; set; }
+        public string title { get; set; }
         public dynamic properties { get; set; }
         public List<string> required { get; set; }
     }
@@ -88,6 +92,7 @@ namespace models
     public class ApiInfoPathRequestBodyProperty
     {
         public string type { get; set; }
+        public string format { get; set; }
         public string description { get; set; }
         public dynamic @default { get; set; }
         public ApiInfoPathRequestBodyPropertyItem items { get; set; }
@@ -96,6 +101,7 @@ namespace models
     public class ApiInfoPathRequestBodyPropertyItem
     {
         public string type { get; set; }
+        public string format { get; set; }
         public string description { get; set; }
     }
     public class ApiInfoPathResponse

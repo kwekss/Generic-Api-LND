@@ -330,7 +330,7 @@ namespace helpers
             return (2.0 * intersection.Count) / (setA.Count + setB.Count);
         }
 
-        public static string EncryptSha256(string rawText)
+        public static string EncryptSha256(this string rawText)
         { 
             byte[] hash = new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes(rawText));
             string hashString = string.Empty;
@@ -396,6 +396,20 @@ namespace helpers
             }
 
             return returnValue.ToString().Trim();
+        }
+
+        public static Guid ToGuid(this string str)
+        { 
+            long value = Math.Abs(str.GetHashCode());
+
+            byte[] bytes = BitConverter.GetBytes(value);
+            byte[] array = new byte[16];
+            bytes.CopyTo(array, 0);
+
+            array[6] = (byte)((array[6] & 0xFu) | 0x40u);
+            array[8] = (byte)((array[8] & 0x3Fu) | 0x80u);
+
+            return new Guid(array);
         }
 
     }

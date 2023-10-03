@@ -10,4 +10,8 @@ namespace helpers.Session
         Task<AppUserSession> GetCurrentUserSession();
         Task<AppUserSession> SetAuthorizedUser<T>(T userData);
     }
+    public interface IRoleManager
+    {
+        Task<bool> IsAuthorized(string userId,string role);
+    }
 }

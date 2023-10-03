@@ -7,7 +7,7 @@
         <PackageId>Acs.GenericApi.Models</PackageId>
         <Authors>Samuel Asiedu</Authors>
         <Title>Generic API Models</Title>
-        <Version>1.0.2</Version>
+        <Version>1.0.6</Version>
         <Company>ACS</Company>
         <Description>A Models Library for the Generic API. This is required by the</Description>
     </PropertyGroup>

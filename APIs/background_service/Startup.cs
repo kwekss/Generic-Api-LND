@@ -1,5 +1,6 @@
 ﻿using BackgroundService;
 using helpers.Engine;
+using helpers.Engine.Scheduler;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -38,7 +39,9 @@ namespace queue_background_services
                 ;
 
             services
-                .AddSingleton<BackgroundRunner>();
+                .AddSingleton<TaskScheduleEngine>();
+
+            //services.AddSingleton<BackgroundRunner>();
 
             // build the pipeline
             provider = services.BuildServiceProvider();

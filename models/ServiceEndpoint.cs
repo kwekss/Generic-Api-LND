@@ -38,7 +38,8 @@ namespace models
             var data = Encoding.UTF8.GetString(RequestBody);
             return JsonConvert.DeserializeObject(data);
         }
-        public List<FileContent> Files { get; set; }
+
+        public List<FormContent> FormContent { get; set; }
         public ClaimsPrincipal User { get; set; }
         public AuthenticationType AuthenticationType { get; set; }
     }
@@ -50,5 +51,9 @@ namespace models
         public string FileName { get; set; }
         public string MimeType { get; set; }
         public long FileSize { get; set; }
+    }
+    public class FormContent : FileContent
+    {
+        public bool IsFile { get; set; }
     }
 }

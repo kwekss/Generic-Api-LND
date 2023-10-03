@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using models;
 using System.Collections.Generic;
 using System.Linq;
 using TestService;
@@ -59,7 +60,10 @@ namespace services_api
                 o.AllowAnyHeader();
             });
 
-            app.UseMiddleware<ServiceFeatureMiddleware>();
+            app.UseMiddleware<ServiceFeatureMiddleware>(new MiddlewareOption
+            {
+                CustomErrorResponse = (statusCode, message) => new CustomApiResponse { StatusCode = message }
+            });
 
             app.UseEndpoints(endpoints =>
             {
@@ -68,19 +72,9 @@ namespace services_api
         }
     }
 
-    public static class IConfigurationExtensions
+    public  class CustomApiResponse
     {
-        public static Dictionary<string, object> ToNestedDicionary(this IConfiguration configuration)
-        {
-            var result = new Dictionary<string, object>();
-            var children = configuration.GetChildren();
-            if (children.Any())
-                foreach (var child in children)
-                    result.Add(child.Key, child.ToNestedDicionary());
-            else
-                if (configuration is IConfigurationSection section)
-                result.Add(section.Key, section.Get(typeof(object)));
-            return result;
-        }
+        public bool Success { get; set; }
+        public string StatusCode { get; set; }
     }
 }

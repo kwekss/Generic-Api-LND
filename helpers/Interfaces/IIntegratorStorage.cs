@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace helpers.Engine
+namespace helpers.Interfaces
 {
     public interface IIntegratorStorage
     {

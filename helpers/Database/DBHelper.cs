@@ -30,16 +30,27 @@ namespace helpers.Database
             return _connections.FirstOrDefault(_ => _.Name?.ToLower() == connectionName.ToLower());
         }
         public async Task Subscribe(string tag, NotificationEventHandler handler)
-        { 
-            _storedProcedureExecutor.Subscribe(_defaultConnection, tag, handler);
+        {
+            _ = _storedProcedureExecutor.Subscribe(_defaultConnection, tag, handler);
         }
         public async Task<List<T>> Fetch<T>(string procedureName, List<StoreProcedureParameter> parameters)
         {
-            return await _storedProcedureExecutor.ExecuteStoredProcedure<T>(_defaultConnection, $"\"{procedureName}\"", parameters);
+            return await Fetch<T>(_defaultConnection, procedureName, parameters);
         }
         public async Task<List<T>> Fetch<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters)
         {
             return await _storedProcedureExecutor.ExecuteStoredProcedure<T>(connection, $"\"{procedureName}\"", parameters);
+        }
+        public async Task<T> FetchOne<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters)
+        {
+            var response = await Fetch<T>(connection, procedureName, parameters);
+            if (response == null) return default(T);
+
+            return response.FirstOrDefault();
+        }
+        public async Task<T> FetchOne<T>(string procedureName, List<StoreProcedureParameter> parameters)
+        {
+            return await FetchOne<T>(_defaultConnection, $"\"{procedureName}\"", parameters);
         }
         public async Task<T> ExecuteRaw<T>(string procedureName, List<StoreProcedureParameter> parameters)
         {

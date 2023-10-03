@@ -20,20 +20,19 @@ namespace TestService.Features
 
         [Entry(Method = "GET")]
         [Authentication(Schema = AuthenticationType.Integrator, RequestTimeKey = "RequestTime")]
-        public async Task<ApiResponse> Entry([FromQuery] TestModel payload)
+        public async Task<ApiResponse<DataSubModel>> Entry([FromQuery] TestModel payload)
         {
 
             var http = await _httpHelper.ClientBuilder().Url("https://jsonplaceholder.typicode.com/todos/1", "GET").Execute();
             
-            return new ApiResponse
+            return new ApiResponse<DataSubModel>
             {
                 Success = true,
-                ResponseMessage = $"I am {FeatureName} from {Service} and id: {payload.Prop}",
-                Data = new { payload, apiResponse = http.ToObject<dynamic>() }
+                ResponseMessage = $"I am {FeatureName} from {Service} and id: {payload.Prop}" 
             };
         }
 
-        [Entry(Method = "POST")]
+        [Entry(Method = "POST/PUT")]
         [Authentication(Schema = AuthenticationType.Integrator, RequestTimeKey = "RequestTime")]
         public async Task<ApiResponse> EntryPost([FromJsonBody] TestModel payload)
         {

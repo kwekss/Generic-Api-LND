@@ -17,6 +17,8 @@ namespace helpers.Database
         Task ExecuteRaw(Connection connection, string procedureName, List<StoreProcedureParameter> parameters);
         Task<List<T>> Fetch<T>(string procedureName, List<StoreProcedureParameter> parameters);
         Task<List<T>> Fetch<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters);
+        Task<T> FetchOne<T>(Connection connection, string procedureName, List<StoreProcedureParameter> parameters);
+        Task<T> FetchOne<T>(string procedureName, List<StoreProcedureParameter> parameters);
         Connection GetConnection(string connectionName);
         List<Connection> GetConnections();
         Task Subscribe(string tag, NotificationEventHandler handler);

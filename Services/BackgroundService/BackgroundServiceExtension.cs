@@ -12,6 +12,7 @@ namespace BackgroundService
             services
                 .AddSingleton<IAutoRun, TestAutoRun>()
                 .AddSingleton<IBackgroundJob, TestBackgroundWorker>()
+                .AddSingleton<ITaskScheduler, TaskScheduler>()
                 ;
 
             return services;

@@ -1,10 +1,14 @@
 ﻿using helpers;
 using helpers.Engine;
+using helpers.Engine.Json;
 using helpers.Interfaces;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Moq;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using SharpCompress.Common;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -25,7 +29,7 @@ namespace unit_tests.Services.TestService
         {
             var httpClientFactoryMock = new Mock<IHttpClientFactory>();
             var httpHelperMock = new Mock<HttpHelper>();
- 
+
             //feature = new TestFeature(httpHelperMock.Object);
             //typeof(BaseServiceFeature).GetProperty("Service").SetValue(feature, "Test", null);
             //typeof(BaseServiceFeature).GetProperty("FeatureName").SetValue(feature, nameof(TestFeature), null);
@@ -46,14 +50,14 @@ namespace unit_tests.Services.TestService
         {
             var message = Regex.Replace("{\"token\": \"1234\",\"try\":\"this123\",\"try2\":\"this123\"}", "\"(Token)\":\\s?(\"(.*?)\")", "\"$1\": \"*****\"", RegexOptions.IgnoreCase);
             Console.WriteLine(message);
-            
+
             message = Regex.Replace("{\"password\":\"1234\"}", "\"(password)\":\\s?(\"(.*?)\")", "\"$1\": \"*****\"", RegexOptions.IgnoreCase);
             Console.WriteLine(message);
-            
+
             message = Regex.Replace("<secret>0254</secret><pin>0254</pin>", "<(secret)>(.*?)</secret>", "<$1>***</$1>", RegexOptions.IgnoreCase);
             Console.WriteLine(message);
-            
-            
+
+
             Assert.IsTrue(message.Contains("***"));
         }
 
@@ -77,7 +81,34 @@ namespace unit_tests.Services.TestService
         {
             var shuffled = Utility.ShuffleString("14d96a9b-904b-4cf8-963d-4725ead6f3b4".ToUpper().Split("-"));
 
-            Assert.IsTrue(true);    
+            Assert.IsTrue(true);
         }
+
+        [Test]
+        public async Task Will_Get_value_between_characters()
+        {
+            string jsonString = "{\"name\": \"@sum($.numbers.S1)\", \"age\": \"($.age)\", \"phone\": \"@test($.number)\", \"join\": \"@join(\"_\", $.list[0], $.list[1], \"special\")\"}";
+            dynamic data = new
+            {
+                numbers = new { S1 = 10, S2 = 20, S3 = 30 },
+                age = 25,
+                number = "233554081875",
+                list = new string[] {"pink", "green has spaces"}
+            };
+
+
+
+            // Replace JSONPath expressions with evaluated values
+            var template = new JsonEngine();
+            template
+                .RegisterClass(typeof(Utility))
+                .RegisterFunction("test", (args) => 1 + 1);
+
+            var newJson = template.Transform(jsonString, data);
+
+            Assert.IsTrue(newJson == "{\"name\": \"10\", \"age\": 25, \"phone\": \"2\"}");
+        }
+
     }
 }
+

@@ -27,9 +27,10 @@ namespace helpers.Atttibutes
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class AuthenticationAttribute : Attribute, IEntryAttribute
     {
-        
+
         public AuthenticationType Schema { get; set; }
         public string RequestTimeKey { get; set; }
+        public string Role { get; set; }
         public AuthenticationAttribute()
         {
 
@@ -50,6 +51,7 @@ namespace helpers.Atttibutes
         private void AuthenticateInternalBearerToken(HttpContext context, IServiceProvider services, ServiceEndpoint endpoint)
         {
             var _sessionManager = services.GetService<ISessionManager>();
+            var _roleManager = services.GetService<IRoleManager>();
             var session = _sessionManager.GetCurrentUserSession().Result;
 
             if (session == null) throw new ApiRequestStatusException(401, "Request authorization failed. Please check and try again");
@@ -62,15 +64,25 @@ namespace helpers.Atttibutes
                 _sessionManager.DeleteSessionData(session.SessionKey).Wait();
                 throw new ApiRequestStatusException(401, "Authorization token expired. Kindly login to continue");
             }
+
+            if (_roleManager != null && !string.IsNullOrWhiteSpace(Role) && !_roleManager.IsAuthorized(sessionData.UserId, Role).Result)
+            {
+                throw new ApiRequestStatusException(403, "Permission denied.");
+            }
+            else if (!string.IsNullOrWhiteSpace(Role) && !Role.Split(",").Any(x => sessionData.Role.Any(r => r.ToLower() == x.ToLower())))
+            {
+                throw new ApiRequestStatusException(403, "Permission denied.");
+            }
+
             endpoint.AuthenticationType = AuthenticationType.InternalBearerToken;
         }
         private void ValidateIdentityServerToken(HttpContext context, IServiceProvider services, ServiceEndpoint endpoint)
         {
-            var config  = services.GetService<IConfiguration>();
+            var config = services.GetService<IConfiguration>();
             var isAuthEnabled = config.GetValue("Utility:Authentication:IdentityServer:Enabled", false);
             var authorityEndpoint = config.GetValue("Utility:Authentication:IdentityServer:Authority", "");
             var audience = config.GetSection("Utility:Authentication:IdentityServer:Audience").Get<List<string>>() ?? new List<string>();
-            
+
             if (!isAuthEnabled) return;
 
             var authorizationString = context.Request.Headers["Authorization"].ToString();
@@ -87,7 +99,7 @@ namespace helpers.Atttibutes
             var schema = authorizationArray[0];
             var token = authorizationArray[1];
 
-           
+
             var openIdConfigurationEndpoint = $"{authorityEndpoint}/.well-known/openid-configuration";
             IConfigurationManager<OpenIdConnectConfiguration> configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(openIdConfigurationEndpoint, new OpenIdConnectConfigurationRetriever());
             OpenIdConnectConfiguration openIdConfig = configurationManager.GetConfigurationAsync(CancellationToken.None).Result;
@@ -106,7 +118,7 @@ namespace helpers.Atttibutes
                 var user = handler.ValidateToken(token, validationParameters, out var validatedToken);
                 if (!user.Identity.IsAuthenticated || DateTime.Now > validatedToken?.ValidTo)
                     throw new ApiRequestStatusException(401, "Authorization failed. Kindly try again");
-                
+
                 endpoint.User = user;
                 endpoint.AuthenticationType = AuthenticationType.OpenIdToken;
             }
@@ -115,23 +127,23 @@ namespace helpers.Atttibutes
                 Log.Error($"Auth Error: {e}");
                 throw new ApiRequestStatusException(401, "Authorization failed.");
             }
-            
+
 
         }
         private void ValidateIntegrator(HttpContext context, IServiceProvider services, ServiceEndpoint endpoint)
         {
-            var config  = services.GetService<IConfiguration>();
+            var config = services.GetService<IConfiguration>();
             var isIntegratorAuthEnabled = config.GetValue("Utility:Authentication:Integrator:Enabled", true);
             if (!isIntegratorAuthEnabled) return;
             dynamic payloadObj = null;
 
             var authorizationString = context.Request.Headers["Authorization"].ToString();
-            
-            if (context.Request.Method.ToUpper() == "GET") 
+
+            if (context.Request.Method.ToUpper() == "GET")
                 payloadObj = GetPayloadFromQuery(context);
             else
                 payloadObj = endpoint.RequestBodyToObject();
-           
+
 
             if (payloadObj == null) throw new CustomException($"Invalid request payload");
             JObject payload = JObject.Parse($"{payloadObj}".ToLower());
@@ -139,8 +151,8 @@ namespace helpers.Atttibutes
             var pathValue = payload.SelectToken(string.IsNullOrWhiteSpace(RequestTimeKey) ? "requesttime" : RequestTimeKey.ToLower());
 
             if (string.IsNullOrWhiteSpace(pathValue?.ToString())) throw new CustomException($"Request timestamp must be set");
-            if(!DateTime.TryParse(pathValue?.ToString(), out var requestTime)) throw new CustomException($"Invalid request timestamp provided");
- 
+            if (!DateTime.TryParse(pathValue?.ToString(), out var requestTime)) throw new CustomException($"Invalid request timestamp provided");
+
             var integrator = services.GetService<IIntegratorHelper>();
             Log.Information($"Auth String: {authorizationString}");
 

@@ -1,6 +1,7 @@
 ﻿using helpers.Atttibutes;
 using helpers.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using models;
@@ -68,13 +69,17 @@ namespace helpers.Engine
                 if (bearerAuths)
                     components["securitySchemes"]["bearerAuth"] = JObject.FromObject(new { required = true, type = "http", name = "Authorization", scheme = "bearer", @in = "header" });
 
+
+                var path = $"/{serviceName}/{featureAttr.Name}";
+
+
+
+
                 for (int j = 0; j < entries.Count; j++)
                 {
-                    var path = $"/{serviceName}/{featureAttr.Name}";
                     var entryType = entries[j];
                     var entryAttr = entryType.GetCustomAttribute(typeof(EntryAttribute)) as EntryAttribute;
                     var apiDocAttr = entryType.GetCustomAttribute(typeof(ApiDocAttribute)) as ApiDocAttribute;
-
                     var apiPathInfo = new ApiInfoPath
                     {
                         tags = new List<string> { },
@@ -85,47 +90,17 @@ namespace helpers.Engine
                         responses = new JObject(),
                         security = new JObject()
                     };
-
                     var resp200 = new ApiInfoPathResponse { description = "", content = new JObject() };
 
-                    var responseObject = new
-                    {
-                        schema = new
-                        {
-                            type = "object",
-                            properties = new JObject(),
-                        },
-                    };
+                    JObject responseSchema = CreateResponseSchema(components, entryType);
 
-                    var response = entryType.ReturnType.GetProperties().FirstOrDefault();
-                    var schema = new ApiInfoPathRequestBodySchema
-                    {
-                        type = "object",
-                        properties = new JObject(),
-                    };
-                    var props = response.PropertyType.GetProperties();
-                    for (int k = 0; k < props.Length; k++)
-                    {
-                        var prop = props[k];
-                        var propName = toCamelCase(prop.Name);
-                        var property = new
-                        {
-                            type = getParameterType(prop.PropertyType),
-                        };
-                        schema.properties[propName] = JObject.FromObject(property);
-                    }
-                    components["schemas"][response.PropertyType.Name] = JObject.FromObject(schema);
-
-
-                    var p = new JObject();
-                    p["$ref"] = $"#/components/schemas/{response.PropertyType.Name}";
-
-                    resp200.content["application/json"] = JObject.FromObject(new { schema = JObject.FromObject(p) });
+                    resp200.content["application/json"] = JObject.FromObject(new { schema = JObject.FromObject(responseSchema) });
                     apiPathInfo.responses["200"] = JObject.FromObject(resp200);
 
                     var methods = entryAttr.Method.Split("/").ToList();
                     path = $"{path}{(!string.IsNullOrWhiteSpace(entryAttr.Route) ? $"/{entryAttr.Route.Trim('/')}" : "")}";
-                    paths[path] = new JObject();
+
+                    if (paths[path] == null) paths[path] = new JObject();
 
                     var entryParameters = entryType.GetParameters()?.ToList();
 
@@ -134,15 +109,14 @@ namespace helpers.Engine
 
                     var requestPayload = entryParameters.Where(x => x.GetCustomAttribute(typeof(FromJsonBodyAttribute)) != null)?.ToList();
                     if (requestPayload != null && requestPayload.Any())
-                    {
                         apiPathInfo.requestBody = GetRequestPayload(requestPayload, components);
-                    }
+
 
                     for (int k = 0; k < methods.Count; k++)
                     {
                         apiPathInfo.tags.Add(serviceName);
                         var method = methods[k].Trim().ToLower();
-                        apiPathInfo.operationId = $"service/{serviceName}/{featureAttr.Name}{(methods.Count > 1 ? $"/{method}" : "")}".ToLower();
+                        apiPathInfo.operationId = $"service/{serviceName}/{featureAttr.Name}{(methods.Count > 1 || entries.Count > 1 ? $"/{method}" : "")}".ToLower();
                         paths[path][methods[k].Trim().ToLower()] = JObject.FromObject(apiPathInfo);
                     }
 
@@ -155,21 +129,14 @@ namespace helpers.Engine
                 servers = new List<OpenApiServer> {
                     new OpenApiServer
                     {
-                        url = "{protocol}://{hostname}" + $"{_url_prefix}",
-                        variables = new OpenApiServerVars
-                        {
-                            hostname = new OpenApiServerVarsValue
-                            {
-                                description = $"{projectName} API server or host",
-                                @default = host
-                            },
-                            protocol = new OpenApiServerVarsValue
-                            {
-                                description = $"{projectName} API server or protocol",
-                                @default = "http"
-                            }
-                        }
-                    }
+                        url = $"http://{host}{_url_prefix}", 
+                        description = $"HTTP server"
+                    },
+                    new OpenApiServer
+                    {
+                        url = $"https://{host}{_url_prefix}", 
+                        description = $"HTTPS server"
+                    } 
                 },
                 info = new ApiInfo
                 {
@@ -184,6 +151,55 @@ namespace helpers.Engine
             };
 
             await _httpContextAccessor.HttpContext.Response.WriteAsync(specs.Stringify());
+        }
+
+        private JObject CreateResponseSchema(JObject components, MethodInfo entryType)
+        {
+            var response = entryType.ReturnType.GetProperties().FirstOrDefault();
+            var schema = new ApiInfoPathRequestBodySchema
+            {
+                type = "object",
+                properties = new JObject(),
+            };
+
+            var props = response.PropertyType.GetProperties();
+            var responseObjectName = toCamelCase(response.PropertyType.Name);
+
+            Type[] genericArgumentTypes = response.PropertyType.GetGenericArguments();
+            for (int i = 0; i < genericArgumentTypes.Length; i++)
+            {
+                createSchema(genericArgumentTypes[i], components);
+                responseObjectName += $"<{string.Join(",", genericArgumentTypes.Select(x => toCamelCase(x.Name)))}>";
+            }
+
+            for (int k = 0; k < props.Length; k++)
+            {
+                var prop = props[k];
+                var propName = toCamelCase(prop.Name);
+                var propType = getParameterType(prop.PropertyType);
+                var property = JObject.FromObject(new { });
+
+                if (prop.PropertyType.IsClass && !prop.PropertyType.FullName.StartsWith("System."))
+                {
+                    createSchema(prop.PropertyType, components);
+                    property["type"] = toCamelCase(prop.PropertyType.Name);
+                    property["$ref"] = $"#/components/schemas/{prop.PropertyType.Name}";
+                }
+                else
+                {
+                    property["type"] = propType;
+                    // property["format"] = getParameterFormat(prop.PropertyType);
+                    property["title"] = getParameterFormat(prop.PropertyType);
+                };
+
+                schema.properties[propName] = property;
+            }
+            components["schemas"][responseObjectName] = JObject.FromObject(schema);
+
+
+            var p = new JObject();
+            p["$ref"] = $"#/components/schemas/{responseObjectName}";
+            return p;
         }
 
         private ApiInfoPathRequestBody GetRequestPayload(List<ParameterInfo> requestPayload, JObject components)
@@ -213,14 +229,13 @@ namespace helpers.Engine
                     var docsAttr = (ApiDocAttribute)pl[j].GetCustomAttribute(typeof(ApiDocAttribute));
                     if (pl[j].PropertyType.IsClass && !pl[j].PropertyType.FullName.StartsWith("System."))
                     {
-                        createSchema(pl[j], components);
+                        createSchema(pl[j].PropertyType, components);
                         var prop = pl[j];
                         var propName = toCamelCase(prop.Name);
                         var property = JObject.FromObject(new
                         {
-                            type = prop.PropertyType.Name,
+                            type = "object"
                         });
-                        //requestObject.schema["type"] = prop.PropertyType.Name;
                         property["$ref"] = $"#/components/schemas/{prop.PropertyType.Name}";
                         requestObject.schema["properties"][propName] = JObject.FromObject(property);
                     }
@@ -229,6 +244,7 @@ namespace helpers.Engine
                         var props = new
                         {
                             type = getParameterType(pl[j].PropertyType),
+                            format = getParameterFormat(pl[j].PropertyType),
                             description = docsAttr?.Description,
                             @default = docsAttr?.Default,
                         };
@@ -243,43 +259,50 @@ namespace helpers.Engine
             return body;
         }
 
-        private void createSchema(PropertyInfo propertyInfo, JObject components)
+        private bool createSchema(Type propertyInfo, JObject components)
         {
-            var schema = new ApiInfoPathRequestBodySchema
+            if (propertyInfo.IsClass && !propertyInfo.FullName.StartsWith("System."))
             {
-                type = "object",
-                properties = new JObject(),
-            };
-
-            var props = propertyInfo.PropertyType.GetProperties();
-            for (int k = 0; k < props.Length; k++)
-            {
-                if (props[k].PropertyType.IsClass && !props[k].PropertyType.FullName.StartsWith("System."))
+                var schema = new ApiInfoPathRequestBodySchema
                 {
-                    createSchema(props[k], components);
-                    var prop = props[k];
-                    var propName = toCamelCase(prop.Name);
-                    var property = JObject.FromObject(new
-                    {
-                        type = prop.PropertyType.Name,
-                    });
-                    //schema.type = prop.PropertyType.Name;
-                    property["$ref"] = $"#/components/schemas/{prop.PropertyType.Name}";
-                    schema.properties[propName] = JObject.FromObject(property);
-                }
-                else
-                {
-                    var prop = props[k];
-                    var propName = toCamelCase(prop.Name);
-                    var property = new
-                    {
-                        type = getParameterType(prop.PropertyType),
-                    };
-                    schema.properties[propName] = JObject.FromObject(property);
-                }
+                    type = "object",
+                    title = getParameterFormat(propertyInfo),
+                    properties = new JObject(),
+                };
 
+                var props = propertyInfo.GetProperties();
+                for (int k = 0; k < props.Length; k++)
+                {
+                    if (props[k].PropertyType.IsClass && !props[k].PropertyType.FullName.StartsWith("System."))
+                    {
+                        createSchema(props[k].PropertyType, components);
+                        var prop = props[k];
+                        var propName = toCamelCase(prop.Name);
+                        var property = JObject.FromObject(new
+                        {
+                            type = prop.PropertyType.Name,
+                        });
+                        //schema.type = prop.PropertyType.Name;
+                        property["$ref"] = $"#/components/schemas/{prop.PropertyType.Name}";
+                        schema.properties[propName] = JObject.FromObject(property);
+                    }
+                    else
+                    {
+                        var prop = props[k];
+                        var propName = toCamelCase(prop.Name);
+                        var property = new
+                        {
+                            type = getParameterType(prop.PropertyType),
+                            format = getParameterFormat(prop.PropertyType),
+                        };
+                        schema.properties[propName] = JObject.FromObject(property);
+                    }
+
+                }
+                components["schemas"][propertyInfo.Name] = JObject.FromObject(schema);
+                return true;
             }
-            components["schemas"][propertyInfo.PropertyType.Name] = JObject.FromObject(schema);
+            return false;
         }
 
         private List<ApiInfoPathParameter> GetParameters(MethodInfo entryType, List<ParameterInfo> parameterInfos, string path)
@@ -299,7 +322,8 @@ namespace helpers.Engine
                             name = properties[j].Name,
                             schema = new ApiInfoPathParameterSchema
                             {
-                                type = getParameterType(parameterInfo.ParameterType),
+                                type = getParameterType(properties[j].PropertyType),
+                                format = getParameterFormat(properties[j].PropertyType),
                                 @default = ""
                             }
                         };
@@ -320,6 +344,7 @@ namespace helpers.Engine
                             schema = new ApiInfoPathParameterSchema
                             {
                                 type = getParameterType(parameterInfo.ParameterType),
+                                format = getParameterFormat(parameterInfo.ParameterType),
                                 @default = ""
                             },
                             required = (new string[] { "path" }).Contains(source)
@@ -362,10 +387,19 @@ namespace helpers.Engine
         private string getParameterType(Type propInfo)
         {
             if (propInfo.Name.ToLower().StartsWith("int")) return "integer";
+            if (new string[] { "guid", "datetime" }.Any(x => propInfo.Name.ToLower().StartsWith(x)))
+                return "string";
             return toCamelCase(propInfo.Name);
         }
+
         private string getParameterFormat(Type propInfo)
         {
+            if (propInfo.Name.ToLower() == "string") return null;
+            if (propInfo.Name.ToLower().StartsWith("guid"))
+                return "uuid";
+            if (propInfo.Name.ToLower().StartsWith("datetime"))
+                return "date-time";
+
             return toCamelCase(propInfo.Name);
         }
 
@@ -384,13 +418,14 @@ namespace helpers.Engine
                 "</head> " +
                 "<body> " +
                 "<main role=\"main\"> " +
-                "<elements-api apiDescriptionUrl=\"$$url_prefix$$/api-docs/specs\" router=\"hash\" /> </main> " +
+                "<elements-api apiDescriptionUrl=\"./specs\" router=\"hash\" /> </main> " +
                 "</body> " +
                 "</html>";
 
             html = html
                     .Replace("$$name$$", ProjectName(name))
-                    .Replace("$$url_prefix$$", _url_prefix);
+                    .Replace("$$url$$", _url_prefix)
+                    .Replace("$$url_prefix$$", _httpContextAccessor.HttpContext.Request.Path.ToString().Trim('/'));
 
             await _httpContextAccessor.HttpContext.Response.WriteAsync(html);
         }
@@ -401,12 +436,16 @@ namespace helpers.Engine
         {
             var SolutionFullPath = Directory.GetParent(Directory.GetCurrentDirectory()).FullName.Replace("\\", "/");
             var tempStrings = SolutionFullPath.Split('/');
-            return _textInfo.ToTitleCase($"{tempStrings[tempStrings.Length - 2].Replace("_", " ").Replace("-", " ")} - {projectName.Replace("_", " ").Replace("-", " ")} ");
+            var name = $"{tempStrings[tempStrings.Length - 2].Replace("_", " ").Replace("-", " ")}";
+
+            return _textInfo.ToTitleCase($"{(string.IsNullOrWhiteSpace(name) ? "" : $"{name} - ")}{projectName.Replace("_", " ").Replace("-", " ")} ");
         }
 
 
         public static string toCamelCase(string str)
         {
+            //str = $"{str}".Replace("`", "");
+            str = $"{str}".Split("`").FirstOrDefault();
             if (!string.IsNullOrEmpty(str) && str.Length > 1)
             {
                 return char.ToLowerInvariant(str[0]) + str.Substring(1);

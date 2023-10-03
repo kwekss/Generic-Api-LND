@@ -28,7 +28,7 @@ namespace helpers.Engine
         private string _method { get; set; }
         private Func<HttpClientBuilder, bool> _retryCondition { get; set; }
         private List<Cookie> _cookieEntries { get; set; } = new List<Cookie>();
-        private StringContent _payload { get; set; }
+        private StringContent _payload { get; set; } 
         private List<(string key, string value)> _headers { get; set; } = new List<(string key, string value)>();
 
         public HttpClientBuilder(HttpClient client)
@@ -49,6 +49,12 @@ namespace helpers.Engine
         public HttpClientBuilder AddHeader(string key, string value)
         {
             _headers.Add((key, value));
+            return this;
+        }
+
+        public HttpClientBuilder Timeout(TimeSpan timeSpan)
+        { 
+            _client.Timeout = timeSpan;
             return this;
         }
 

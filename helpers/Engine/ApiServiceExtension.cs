@@ -3,6 +3,7 @@ using helpers.Database.Executors;
 using helpers.Database.Models;
 using helpers.Interfaces;
 using helpers.Notifications;
+using helpers.Scheduler;
 using helpers.Session;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,7 @@ namespace helpers.Engine
             var enableConsoleLog = config.GetValue("Utility:Logging:EnableConsoleLogs", true);
 
             var logLevel = config.GetValue("Utility:Logging:Level", "Information");
+            var logFileName = config.GetValue("Utility:Logging:FileName", "");
 
             var enableFileLog = config.GetValue("Utility:Logging:EnableFileLogs", true);
             bool useBuiltInIntegratorStorage = config.GetValue("Utility:Authentication:Integrator:UseBuiltInStorage", true);
@@ -44,9 +46,10 @@ namespace helpers.Engine
 
             if (enableFileLog)
             {
-                logger = logger.WriteTo.Map(evt => evt.Level, (level, wt) => wt.File(
-                                 Path.Combine(logPath, $"{level}", $"{DateTime.UtcNow:yyyy-MM-dd}.log"),
-                                 rollingInterval: RollingInterval.Day,
+                logger = logger
+                    .WriteTo.Map(evt => evt.Level, (level, wt) => wt.File(
+                                 Path.Combine(logPath, $"{level}", $"{logFileName}.log"),
+                                 rollingInterval: RollingInterval.Day,                                 
                                  outputTemplate: "{Timestamp:yyyy-MM-dd hh:mm:ss tt} [{CorrelationId}] - {AppLog}{NewLine}{Exception}"
                                  )
                              );
@@ -66,6 +69,7 @@ namespace helpers.Engine
                 .AddSingleton(databaseConnections)
                 .AddSingleton<IMessengerHub>(messageHub)
                 .AddHttpClient()
+                .AddTransient<ISchedulerProvider, SchedulerProvider>()
                 .AddTransient<IFeatureContext, FeatureContext>()
                 .AddSingleton<IStoredProcedureExecutor, NpgsqlStoredProcedureExecutor>()
                 .AddSingleton<IOracleExecutor, OracleExecutor>()

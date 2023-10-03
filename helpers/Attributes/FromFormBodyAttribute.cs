@@ -17,7 +17,7 @@ namespace helpers.Atttibutes
 
         public dynamic GetPayloadFromBody(ServiceEndpoint endpoint, ParameterInfo instance)
         {
-            if (typeof(FileContent).Equals(instance.ParameterType)) return endpoint?.Files.FirstOrDefault(_ => _?.Name.ToLower() == instance.Name);
+            if (typeof(FormContent).Equals(instance.ParameterType)) return endpoint?.FormContent.FirstOrDefault(_ => _?.Name.ToLower() == instance.Name?.ToLower());
 
             return null;
         }

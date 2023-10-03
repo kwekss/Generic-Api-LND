@@ -1,9 +1,9 @@
-﻿using helpers.Engine;
+﻿using helpers.Interfaces;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace helpers.Interfaces
+namespace helpers.Engine
 {
     public class IntegratorHelper : IIntegratorHelper
     {
@@ -51,6 +51,6 @@ namespace helpers.Interfaces
             var selectedIntegratorEnc = Utility.EncryptSha256($"{requestTime.ToString(dateFormat)}{selectedIntegrator.IntegratorToken}");
             if (selectedIntegratorEnc != IntegratorEncryptedBody) throw new InvalidOperationException(InvalidEncryptionMessage);
             return null;
-        } 
+        }
     }
 }

@@ -15,33 +15,32 @@ namespace helpers.Engine
 {
     public class BackgroundRunner
     {
-        private readonly List<IBackgroundJob> _jobs;
+
+        private readonly List<IBackgroundJob> _jobs; 
         private readonly List<IAutoRun> _autoRunners;
         private readonly int _delayTime;
         private readonly string _serverId;
         static readonly CancellationTokenSource _cancelationTokensSource = new CancellationTokenSource();
+         
 
-        private readonly IMessengerHub _messengerHub;
-
-        public BackgroundRunner(IMessengerHub messengerHub, IConfiguration config, IServiceProvider services)
-        {
-            _messengerHub = messengerHub;
-
+        public BackgroundRunner( IConfiguration config, IServiceProvider services)
+        { 
             _delayTime = config.GetValue("BACKGROUND_SERVICE:LOOP_DELAY_SEC", 5);
-            _serverId = config.GetValue("BACKGROUND_SERVICE:SERVER_ID", "");
+            _serverId = config.GetValue("BACKGROUND_SERVICE:SERVER_ID", Guid.NewGuid().ToString().Split("-").FirstOrDefault());
             int jobInstances = config.GetValue("BACKGROUND_SERVICE:JOB_INSTANCES", 1);
             bool isBackgrounRunnerEnabled = config.GetValue("BACKGROUND_SERVICE:ENABLED", false);
 
             _autoRunners = services.GetServices<IAutoRun>().ToList();
+            
             ExecuteAutoRun();
 
-            if (isBackgrounRunnerEnabled)
+             if (isBackgrounRunnerEnabled)
             {
                 AssemblyLoadContext.Default.Unloading += OnUnloadingEventHandler;
                 Log.ForContext("CorrelationId", "BackgroundService").Information($"Background service was started");
                 _jobs = services.GetServices<IBackgroundJob>().ToList();
                 RunJobs(jobInstances, TimeSpan.FromSeconds(_delayTime), _cancelationTokensSource);
-            }
+            }  
 
         }
 
@@ -75,6 +74,7 @@ namespace helpers.Engine
             }
         }
 
+
         private async Task StartJobs(IBackgroundJob job, TimeSpan loopInterval, CancellationTokenSource cancellationTokenSource)
         {
             while (!cancellationTokenSource.IsCancellationRequested)
@@ -101,5 +101,5 @@ namespace helpers.Engine
         {
             Log.ForContext("CorrelationId", "BackgroundService").Information($"Background service was stopped on OnUnloadingEventHandler");
         }
-    }
+    } 
 }

@@ -5,6 +5,7 @@ using helpers.Notifications;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing;
 using models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -30,6 +31,7 @@ namespace helpers.Middlewares
         private readonly IServiceProvider _serviceProvider;
         private readonly IConfiguration _config;
         private readonly RequestDelegate _next;
+        private readonly MiddlewareOption _option;
         private readonly bool _is_logging_enabled;
         private readonly bool _is_response_logging_enabled;
         private readonly bool _is_api_doc_enabled;
@@ -37,18 +39,19 @@ namespace helpers.Middlewares
         private readonly string _api_type;
         private readonly JsonSerializerSettings _serializerSettings;
 
-        public ServiceFeatureMiddleware(IDocumentationBuilder documentationBuilder, IMessengerHub messengerHub, IServiceProvider serviceProvider, IConfiguration config, RequestDelegate next)
+        public ServiceFeatureMiddleware(IDocumentationBuilder documentationBuilder, IMessengerHub messengerHub, IServiceProvider serviceProvider, IConfiguration config, RequestDelegate next, MiddlewareOption option = null)
         {
             _documentationBuilder = documentationBuilder;
             _messengerHub = messengerHub;
             _serviceProvider = serviceProvider;
             _config = config;
             _next = next;
+            _option = option;
             _is_response_logging_enabled = config.GetValue("Utility:Logging:ENABLE_RESPONSE_LOG", false);
             _is_logging_enabled = config.GetValue("ENABLE_LOGGING", false);
             _is_api_doc_enabled = config.GetValue("ENABLE_API_DOCS", false);
             _api_type = config.GetValue("API_TYPE", "WEB_API");
-            _url_prefix = config.GetValue("URL_PREFIX","");
+            _url_prefix = config.GetValue("URL_PREFIX", "");
 
             _serializerSettings = new JsonSerializerSettings
             {
@@ -81,16 +84,13 @@ namespace helpers.Middlewares
                     //urlPath = urlPath.Replace(_url_prefix.ToLower(), "", 1);
                 }
 
-                if (_is_api_doc_enabled && urlPath.Trim('/').ToLower().StartsWith("api-docs"))
+                if (_is_api_doc_enabled && new string[] { "specs", "api-docs" }.Any(x => urlPath.Trim('/').ToLower().Contains(x)))
                 {
                     if (urlPath.ToLower().EndsWith("specs"))
-                    {
                         await _documentationBuilder.RenderOpenApiSpecs(projectName);
-                    }
                     else
-                    {
                         await _documentationBuilder.RenderView(projectName);
-                    }
+
                     return;
                 }
 
@@ -108,7 +108,7 @@ namespace helpers.Middlewares
                 var endpoint = new ServiceEndpoint(path);
                 if (context.Request.Method.ToLower() != "get" && context.Request.ContentType != null && context.Request.ContentType.Contains("multipart/form-data") && (context.Request?.Form?.Files?.Any() ?? false))
                 {
-                    endpoint.Files = context.Request.Form.Files.Select((f) =>
+                    endpoint.FormContent = context.Request.Form.Files.Select((f) =>
                     {
                         byte[] bytes;
                         using (var ms = new MemoryStream())
@@ -116,8 +116,13 @@ namespace helpers.Middlewares
                             f.CopyToAsync(ms).Wait();
                             bytes = ms.ToArray();
                         }
-                        return new FileContent { Name = f.Name, Content = bytes, FileName = f.FileName, FileSize = f.Length, MimeType = f.ContentType };
+                        return new FormContent { IsFile = true, Name = f.Name, Content = bytes, FileName = f.FileName, FileSize = f.Length, MimeType = f.ContentType };
                     }).ToList();
+
+                    endpoint.FormContent.AddRange(context.Request.Form.Select((f) =>
+                    {
+                        return new FormContent { Name = f.Key, Content = Encoding.UTF8.GetBytes(f.Value.ToString()), FileName = f.Key, FileSize = f.Value.ToString().Length };
+                    }).ToList());
 
                 }
 
@@ -134,7 +139,10 @@ namespace helpers.Middlewares
 
                 if (endpoint.RequestBody.Length > 0)
                 {
-                    Log.Information($"Incoming Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}");
+                    if (endpoint.FormContent != null && endpoint.FormContent.Count() > 0)
+                        Log.Information($"Incoming Form Data: {endpoint.FormContent.Where(f => !f.IsFile).Stringify()}");
+                    else
+                        Log.Information($"Incoming Request Payload: {Encoding.UTF8.GetString(endpoint.RequestBody)}");
                 }
 
                 if (context.Request.QueryString.HasValue)
@@ -208,7 +216,7 @@ namespace helpers.Middlewares
             {
                 var data = e.Message.Split("||");
                 var statusCode = Convert.ToInt32(data[0]);
-                if(!_is_response_logging_enabled) Log.Information($"Response: {statusCode} => {data[1]}");
+                if (!_is_response_logging_enabled) Log.Information($"Response: {statusCode} => {data[1]}");
 
                 await Respond(context, data[1], statusCode);
                 return;
@@ -237,9 +245,9 @@ namespace helpers.Middlewares
         {
             var originalBodyStream = context.Response.Body;
 
-            if (_is_response_logging_enabled) 
+            if (_is_response_logging_enabled)
                 Log.Information($"Response for Incoming Request [{responseCode}]: {responseContent}");
-            
+
             using (var responseBody = new MemoryStream())
             {
 
@@ -274,30 +282,37 @@ namespace helpers.Middlewares
         private RouteRegex ConvertRouteToRegex(string route)
         {
             RouteRegex routeRegex = null;
-            var regex = Regex.Matches(route, "{([a-zA-Z0-9_]*):?(string|int|int64|bool|double)?}");
+            var regex = Regex.Matches(route, "{([a-zA-Z0-9_]*):?(guid|uuid|string|int|int64|bool|double)?}");
             if (regex.Count > 0)
             {
                 routeRegex = new RouteRegex();
                 routeRegex.RouteParams = new List<RouteRegexParam>();
+                routeRegex.Regex = route;
                 for (int i = 0; i < regex.Count; i++)
                 {
                     var match = regex[i];
                     if (match.Success)
                     {
+                        var parameterize = $"{(match.Value.Contains(":") ? $"|{match.Value.TrimStart('{').TrimEnd('}')}" : "")}";
                         routeRegex.RouteParams.Add(new RouteRegexParam { Index = i + 1, Name = match.Groups[1].Value, Type = match.Groups[2].Value });
+
                         if (match.Groups[2].Value == "bool")
-                            route = route.Replace(match.Value, "(true|false)");
+                            routeRegex.Regex = routeRegex.Regex.Replace(match.Value, $"(true|false{parameterize})");
+
+                        if (new string[] { "uuid", "guid" }.Contains(match.Groups[2].Value))
+                            routeRegex.Regex = routeRegex.Regex.Replace(match.Value, "(^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$"+"|.*"+parameterize+")");
 
                         if (string.IsNullOrWhiteSpace(match.Groups[2].Value) || match.Groups[2].Value == "string")
-                            route = route.Replace(match.Value, "(.*)");
+                            routeRegex.Regex = routeRegex.Regex.Replace(match.Value, $"(.*{parameterize})");
+
                         if (match.Groups[2].Value == "int" || match.Groups[2].Value == "int64")
-                            route = route.Replace(match.Value, "([0-9]*)");
+                            routeRegex.Regex = routeRegex.Regex.Replace(match.Value, $"(\\d+${parameterize})");
+
                         if (match.Groups[2].Value == "double")
-                            route = route.Replace(match.Value, "(\\d*\\.)?\\d+$");
+                            routeRegex.Regex = routeRegex.Regex.Replace(match.Value, $"(\\d*\\.)?\\d+${parameterize}");
 
                     }
                 }
-                routeRegex.Regex = route;
             }
             return routeRegex;
         }
@@ -345,12 +360,17 @@ namespace helpers.Middlewares
         private async Task Respond(HttpContext context, string message, int statusCode = 200)
         {
             context.Response.StatusCode = statusCode;
-            if (_api_type == "USSD_API")
+            if (_option != null && _option.CustomErrorResponse != null)
+            {
+                var response = _option.CustomErrorResponse(statusCode, message)?.Stringify(_serializerSettings);
+                await WriteResponse(context, response, statusCode, "application/json");
+            }
+            else if (_api_type == "USSD_API")
             {
                 var response = new UssdApiResponse { ResponseBody = message }.Stringify(_serializerSettings);
                 await WriteResponse(context, response, statusCode, "application/json");
             }
-            if (_api_type == "WEB_API")
+            else if (_api_type == "WEB_API")
             {
                 var response = new ApiResponse { ResponseMessage = message }.Stringify(_serializerSettings);
                 await WriteResponse(context, response, statusCode, "application/json");
@@ -384,18 +404,17 @@ namespace helpers.Middlewares
                         var source = HttpUtility.ParseQueryString(httpContext.Request.QueryString.ToUriComponent());
                         var value = source.Cast<string>().Select(key => new KeyValuePair<string, string>(key.ToLower(), source[key]))
                             .FirstOrDefault(_ => _.Key == parameter.Name.ToLower());
+
                         if (!string.IsNullOrWhiteSpace(value.Key))
-                        {
-                            parameterValue = Convert.ChangeType(value.Value, parameter.ParameterType);
-                        }
+                            parameterValue = GetParameterValue(parameter.ParameterType, value.Value);
+
 
                         if (parameterValue == null && routeRegex != null)
                         {
                             var routeValue = routeRegex.RouteParams.FirstOrDefault(_ => _.Name.ToLower() == parameter.Name.ToLower());
+
                             if (!string.IsNullOrWhiteSpace(routeValue.Value))
-                            {
-                                parameterValue = Convert.ChangeType(routeValue.Value, parameter.ParameterType);
-                            }
+                                parameterValue = GetParameterValue(parameter.ParameterType, routeValue.Value);
                         }
                         p[i] = parameterValue;
                     }
@@ -411,6 +430,14 @@ namespace helpers.Middlewares
             return p.ToArray();
         }
 
+        private dynamic GetParameterValue(Type parameter, string routeValue)
+        {
+            if (new string[] { "uuid", "guid" }.Contains(parameter.Name.ToLower()))
+                return new Guid(routeValue);
+
+            return Convert.ChangeType(routeValue, parameter);
+        }
+
         private (bool IsAwaitable, bool ReturnData) DeterminingAwaitable(MethodInfo methodInfo)
         {
             var isAwaitable = methodInfo.ReturnType.GetMethod(nameof(Task.GetAwaiter)) != null;
@@ -421,5 +448,9 @@ namespace helpers.Middlewares
                 return (false, methodInfo.ReturnType != typeof(void));
         }
 
+    }
+    public class MiddlewareOption
+    {
+        public Func<int, string, object>? CustomErrorResponse { get; set; }
     }
 }
