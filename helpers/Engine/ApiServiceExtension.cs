@@ -23,6 +23,8 @@ namespace helpers.Engine
             config.Bind("Databases", databaseConnections);
 
             Utility.COUNTRY_CODE = config.GetValue("Utility:CountryCode", "233");
+            Utility.MSISDN_LENGTH = config.GetValue("Utility:CountryCodeLength", 9);
+
             var enableConsoleLog = config.GetValue("Utility:Logging:EnableConsoleLogs", true);
 
             var logLevel = config.GetValue("Utility:Logging:Level", "Information");
@@ -69,6 +71,7 @@ namespace helpers.Engine
                 .AddSingleton(databaseConnections)
                 .AddSingleton<IMessengerHub>(messageHub)
                 .AddHttpClient()
+                .AddTransient<ILanguageHelper, LanguageHelper>()
                 .AddTransient<ISchedulerProvider, SchedulerProvider>()
                 .AddTransient<IFeatureContext, FeatureContext>()
                 .AddSingleton<IStoredProcedureExecutor, NpgsqlStoredProcedureExecutor>()

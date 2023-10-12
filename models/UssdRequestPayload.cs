@@ -19,6 +19,7 @@ namespace models
         public string Email { get; set; }
         public string Surname { get; set; }
         public string AdditionalData { get; set; }
+        public bool UseDefaultLang { get; set; }
         public string Channel { get; set; }
         public DateTime RequestTimestamp { get; set; }
         public DateData Date { get; set; }

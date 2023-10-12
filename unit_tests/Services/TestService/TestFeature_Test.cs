@@ -109,6 +109,60 @@ namespace unit_tests.Services.TestService
             Assert.IsTrue(newJson == "{\"name\": \"10\", \"age\": 25, \"phone\": \"2\"}");
         }
 
+        [Test]
+        public async Task Will_return_valid_msisdn_in_12_digits()
+        {
+            Utility.MSISDN_LENGTH = 9;
+
+            var msisdn = Utility.FormatNumber12Digits("0554081875");
+            Assert.IsTrue(msisdn == "233554081875");
+        }
+        [Test]
+        public async Task Will_return_valid_msisdn_in_9_digits()
+        { 
+            Utility.MSISDN_LENGTH = 9;
+
+            var msisdn =  Utility.FormatNumber9Digits("0554081875");
+            Assert.IsTrue(msisdn == "554081875");
+        }
+        [Test]
+        public async Task Will_return_valid_msisdn_in_10_digits()
+        { 
+            Utility.MSISDN_LENGTH = 9;
+
+            var msisdn =  Utility.FormatNumber10Digits("233554081875");
+            Assert.IsTrue(msisdn == "0554081875");
+        }
+
+        /* For Benin Msisdn */
+        [Test]
+        public async Task Will_return_valid_beninn_msisdn_in_12_digits()
+        {
+            Utility.MSISDN_LENGTH = 8;
+            Utility.COUNTRY_CODE = "229";
+
+            var msisdn = Utility.FormatNumber12Digits("056090016");
+            Assert.IsTrue(msisdn == "22956090016");
+        }
+        [Test]
+        public async Task Will_return_valid_beninn_msisdn_in_9_digits()
+        {
+            Utility.MSISDN_LENGTH = 8;
+            Utility.COUNTRY_CODE = "229";
+
+            var msisdn = Utility.FormatNumber9Digits("056090016");
+            Assert.IsTrue(msisdn == "56090016");
+        }
+        [Test]
+        public async Task Will_return_valid_beninn_msisdn_in_10_digits()
+        {
+            Utility.MSISDN_LENGTH = 8;
+            Utility.COUNTRY_CODE = "229";
+
+            var msisdn = Utility.FormatNumber10Digits("22956090016");
+            Assert.IsTrue(msisdn == "056090016");
+        }
+
     }
 }
 

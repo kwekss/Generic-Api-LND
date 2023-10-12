@@ -17,6 +17,7 @@ namespace helpers
     {
 
         public static string COUNTRY_CODE = "233";
+        public static int MSISDN_LENGTH = 9;
         public static string FormatNumber10Digits(string phoneNumber, bool returnIfInvalid = false)
         {
             phoneNumber = phoneNumber.Trim();
@@ -28,27 +29,27 @@ namespace helpers
                 }
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.Length == 9)
+            if (phoneNumber.Length == MSISDN_LENGTH)
             {
                 return "0" + phoneNumber;
             }
-            if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
+            if (phoneNumber.StartsWith("0") && phoneNumber.Length == (MSISDN_LENGTH +1))
             {
                 return phoneNumber;
             }
-            if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == MSISDN_LENGTH + COUNTRY_CODE.Length)
             {
                 return "0" + phoneNumber.Substring(COUNTRY_CODE.Length);
             }
-            if (phoneNumber.StartsWith($"{COUNTRY_CODE}{COUNTRY_CODE}") && phoneNumber.Length == 9 + $"{COUNTRY_CODE}{COUNTRY_CODE}".Length)
+            if (phoneNumber.StartsWith($"{COUNTRY_CODE}{COUNTRY_CODE}") && phoneNumber.Length == MSISDN_LENGTH + $"{COUNTRY_CODE}{COUNTRY_CODE}".Length)
             {
                 return "0" + phoneNumber.Substring($"{COUNTRY_CODE}{COUNTRY_CODE}".Length);
             }
-            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH+1) + COUNTRY_CODE.Length)
             {
                 return "0" + phoneNumber.Substring(COUNTRY_CODE.Length + 1);
             }
-            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 11 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH+2) + COUNTRY_CODE.Length)
             {
                 return "0" + phoneNumber.Substring(COUNTRY_CODE.Length + 2);
             }
@@ -66,23 +67,23 @@ namespace helpers
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH + 1) + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length + 2);
             }
-            else if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
+            else if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == MSISDN_LENGTH + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length + 1);
             }
-            else if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == 9 + COUNTRY_CODE.Length)
+            else if (phoneNumber.StartsWith(COUNTRY_CODE) && phoneNumber.Length == MSISDN_LENGTH + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(COUNTRY_CODE.Length);
             }
-            else if (phoneNumber.StartsWith($"{COUNTRY_CODE}{COUNTRY_CODE}") && phoneNumber.Length == 9 + $"{COUNTRY_CODE}{COUNTRY_CODE}".Length)
+            else if (phoneNumber.StartsWith($"{COUNTRY_CODE}{COUNTRY_CODE}") && phoneNumber.Length == MSISDN_LENGTH + $"{COUNTRY_CODE}{COUNTRY_CODE}".Length)
             {
                 phoneNumber = phoneNumber.Substring($"{COUNTRY_CODE}{COUNTRY_CODE}".Length);
             }
-            else if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
+            else if (phoneNumber.StartsWith("0") && phoneNumber.Length == (MSISDN_LENGTH + 1))
             {
                 phoneNumber = phoneNumber.Substring(1);
             }
@@ -90,7 +91,7 @@ namespace helpers
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.Length != 9)
+            if (phoneNumber.Length != MSISDN_LENGTH)
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
@@ -104,19 +105,19 @@ namespace helpers
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH + 1) + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(1);
             }
-            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 11 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH+2) + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(2);
             }
-            if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
+            if (phoneNumber.StartsWith("0") && phoneNumber.Length == (MSISDN_LENGTH + 1))
             {
                 phoneNumber = COUNTRY_CODE + phoneNumber.Substring(1);
             }
-            if (phoneNumber.Length == 9)
+            if (phoneNumber.Length == MSISDN_LENGTH)
             {
                 phoneNumber = COUNTRY_CODE + phoneNumber;
             }
@@ -124,7 +125,7 @@ namespace helpers
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.Length != 9 + COUNTRY_CODE.Length)
+            if (phoneNumber.Length != MSISDN_LENGTH + COUNTRY_CODE.Length)
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
@@ -138,19 +139,19 @@ namespace helpers
             {
                 throw new WarningException("Invalid Number: " + phoneNumber);
             }
-            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == 10 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("+" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH + 1) + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(1);
             }
-            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == 11 + COUNTRY_CODE.Length)
+            if (phoneNumber.StartsWith("00" + COUNTRY_CODE) && phoneNumber.Length == (MSISDN_LENGTH +2) + COUNTRY_CODE.Length)
             {
                 phoneNumber = phoneNumber.Substring(2);
             }
-            if (phoneNumber.StartsWith("0") && phoneNumber.Length == 10)
+            if (phoneNumber.StartsWith("0") && phoneNumber.Length == (MSISDN_LENGTH + 1))
             {
                 phoneNumber = COUNTRY_CODE + phoneNumber.Substring(1);
             }
-            if (phoneNumber.Length == 9)
+            if (phoneNumber.Length == MSISDN_LENGTH)
             {
                 phoneNumber = COUNTRY_CODE + phoneNumber;
             }
@@ -158,7 +159,7 @@ namespace helpers
             {
                 return false;
             }
-            if (phoneNumber.Length != 9 + COUNTRY_CODE.Length)
+            if (phoneNumber.Length != MSISDN_LENGTH + COUNTRY_CODE.Length)
             {
                 return false;
             }
